@@ -1,0 +1,18 @@
+# --- Python (Backend) ---
+backend/venv/
+backend/__pycache__/
+backend/logs/
+*.pyc
+
+# --- ArduPilot SITL (Simulator) Generated Files ---
+# シミュレータが生成する一時ファイルを除外
+backend/eeprom.bin
+backend/mav.parm
+backend/*.tlog
+backend/*.tlog.raw
+
+# --- Node.js (Frontend) ---
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+.DS_Store
