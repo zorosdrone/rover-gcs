@@ -6,7 +6,19 @@ function App() {
 
   useEffect(() => {
     // FastAPIのWebSocketへ接続
-    const ws = new WebSocket('ws://localhost:8000/ws')
+    // const ws = new WebSocket('ws://localhost:8000/ws')
+    // --- 接続先を自動判定 ---
+    // HTTPSならwss(暗号化)、HTTPならwsを使う
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // 今開いているドメイン(rover.zorosmap.me)を使う
+    const host = window.location.host;
+    // Caddyの設定に合わせて '/ws' パスに接続する
+    const wsUrl = `${protocol}//${host}/ws`;
+
+    console.log("Connecting to:", wsUrl); // デバッグ用にログ出力
+
+    // FastAPIのWebSocketへ接続
+const ws = new WebSocket(wsUrl)
 
     ws.onopen = () => {
       setStatus("Connected to Backend")
