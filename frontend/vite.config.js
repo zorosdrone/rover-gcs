@@ -4,4 +4,12 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    // 以下を追加
+    allowedHosts: [
+      'rover.zorosmap.me',
+      'localhost',
+      '127.0.0.1'
+    ]
+  }
 })
