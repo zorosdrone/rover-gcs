@@ -107,6 +107,9 @@ SITL とバックエンドが同じマシン上で動作している場合、特
 - `backend/eeprom.bin` : EEPROM データ
 - `backend/mav.tlog*` : テレメトリログ
 
+## システム構成
+詳細な構成図は [docs/architecture.md](docs/architecture.md) を参照してください。
+![構成図](docs/images/architecture.png)
 ## ライセンス
 
 このリポジトリのライセンスは未記載です。公開・再配布前にリポジトリオーナーに確認してください。
