@@ -5,20 +5,17 @@ function App() {
   const [telemetry, setTelemetry] = useState({})
 
   useEffect(() => {
-    // FastAPIのWebSocketへ接続
-    // const ws = new WebSocket('ws://localhost:8000/ws')
-    // --- 接続先を自動判定 ---
-    // HTTPSならwss(暗号化)、HTTPならwsを使う
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // 今開いているドメイン(rover.zorosmap.me)を使う
-    const host = window.location.host;
-    // Caddyの設定に合わせて '/ws' パスに接続する
-    const wsUrl = `${protocol}//${host}/ws`;
+    const isDev = import.meta.env.DEV
 
-    console.log("Connecting to:", wsUrl); // デバッグ用にログ出力
+    // 開発時: ローカルの FastAPI(Uvicorn) に直結
+    // 本番時: 現在のホストの /ws へ接続（Caddy 経由）
+    const wsUrl = isDev
+      ? 'ws://127.0.0.1:8000/ws'
+      : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
 
-    // FastAPIのWebSocketへ接続
-const ws = new WebSocket(wsUrl)
+    console.log('Connecting to:', wsUrl)
+
+    const ws = new WebSocket(wsUrl)
 
     ws.onopen = () => {
       setStatus("Connected to Backend")

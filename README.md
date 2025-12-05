@@ -44,15 +44,17 @@ npm install
 
 ## 起動方法
 
-### 1. バックエンドの起動
+### ローカル開発（SITL + 手元バックエンド）
+
+#### 1. バックエンドの起動
 
 ```bash
 cd backend
 source venv/bin/activate
-python main.py
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### 2. フロントエンドの起動
+#### 2. フロントエンドの起動
 
 別ターミナルで実行します。
 
@@ -62,6 +64,17 @@ npm run dev
 ```
 
 Vite が表示するローカルホストの URL（例: `http://localhost:5173`）にブラウザからアクセスします。
+
+### Docker 本番運用（Caddy 等のリバースプロキシ前提）
+
+```bash
+docker-compose up -d
+```
+
+- バックエンド: コンテナ内ポート `8000` をホスト `8001` に公開（`ws://<host>:8001/ws`）
+- フロントエンド: コンテナ内ポート `5173` をホスト `3000` に公開（`http://<host>:3000`）
+
+本番では Caddy / Nginx などで、`/` をフロントエンド、`/ws` をバックエンドにリバースプロキシする構成を想定しています。
 
 ## 開発用 ArduPilot シミュレーター起動手順
 
@@ -99,6 +112,8 @@ sim_vehicle.py -v Rover -f rover-skid --console --map
 3. フロントエンドを `npm run dev` で起動
 
 SITL とバックエンドが同じマシン上で動作している場合、特別な設定変更なしで MAVLink が受信できる想定です。挙動がおかしい場合は、`backend/main.py` 内の接続ポート設定を確認してください。
+
+より詳しい開発運用手順は `docs/sitl.md` を参照してください。
 
 ## ログ / 設定ファイル
 

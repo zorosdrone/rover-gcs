@@ -18,19 +18,24 @@ app.add_middleware(
 # Rpanionからは "WSLのTailscale IP:14552" 宛に投げてもらう
 CONNECTION_STRING = 'udp:0.0.0.0:14552'
 
+
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "rover-gcs backend is running"}
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    print("Client Connected via WebSocket")
+    print("[backend] Client connected via WebSocket")
 
     try:
         # MAVLink接続の確立
-        print(f"Waiting for MAVLink heartbeat on {CONNECTION_STRING}...")
+        print(f"[backend] Waiting for MAVLink heartbeat on {CONNECTION_STRING}...")
         mav = mavutil.mavlink_connection(CONNECTION_STRING)
 
         # 最初のハートビートを待つ
         mav.wait_heartbeat()
-        print("Heartbeat Received!")
+        print("[backend] MAVLink heartbeat received")
 
         while True:
             # メッセージを受信 (ブロックせずに取得)
