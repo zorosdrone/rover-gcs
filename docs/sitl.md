@@ -4,14 +4,14 @@ ArduPilot Rover の SITL (Software In The Loop) と `rover-gcs` を組み合わ�
 
 ## 前提
 
-- ArduPilot のソースコードが `~/ardupilot` に配置されている
+- ArduPilot のソースコードが `~/GitHub/ardupilot` に配置されている
 - このリポジトリが `~/rover-gcs` にクローンされている
 - Python 仮想環境や Node.js などのセットアップは README の手順どおりに完了している
 
 ## 1. SITL (Rover) の起動（ローカル開発用）
 
 ```bash
-cd ~/ardupilot/ArduRover
+cd ~/GitHub/ardupilot/Rover
 sim_vehicle.py -v Rover -f rover-skid --console --map
 ```
 
@@ -119,7 +119,7 @@ sudo tcpdump -n udp port 14550
 
   ```bash
   # SITL（ローカル検証用）
-  cd ~/ardupilot/ArduRover
+  cd ~/GitHub/ardupilot/Rover
   sim_vehicle.py -v Rover -f rover-skid --console --map \
     --out=udp:127.0.0.1:14552
 
@@ -190,7 +190,7 @@ sudo tcpdump -n udp port 14550
 
   ```bash
   # WSL 内などから、本番サーバーに向けて SITL を起動
-  cd ~/ardupilot/ArduRover
+  cd ~/GitHub/ardupilot/Rover
   sim_vehicle.py -v Rover -f rover-skid --console --map \
     --out=udp:<本番サーバーのVPN IP>:14552
   ```

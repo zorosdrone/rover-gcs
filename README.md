@@ -124,6 +124,8 @@ SITL とバックエンドが同じマシン上で動作している場合、特
 
 ## システム構成
 
+![System Architecture](docs/images/architecture.png)
+
 より詳細な構成やデータフローについては `docs/architecture.md` を参照してください。
 
 ## ライセンス
