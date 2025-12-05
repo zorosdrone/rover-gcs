@@ -50,8 +50,14 @@ async def websocket_endpoint(websocket: WebSocket):
                     msg_type = msg.get_type()
 
                     # 特定のメッセージだけフロントへ送る（例: 姿勢と位置）
-                    if msg_type in ['ATTITUDE', 'GLOBAL_POSITION_INT', 'HEARTBEAT']:
+                    if msg_type in ['ATTITUDE', 'GLOBAL_POSITION_INT', 'HEARTBEAT', 'VFR_HUD']:
                         data = msg.to_dict()
+
+                        # 追加情報: モード名やArmed状態
+                        if msg_type == 'HEARTBEAT':
+                            data['mode_name'] = mav.flightmode
+                            data['is_armed'] = mav.motors_armed()
+
                         # JSONにしてReactへ送信
                         await websocket.send_text(json.dumps({
                             "type": msg_type,
@@ -87,7 +93,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         print(f"[backend] COMMAND received: {msg}")
 
                         if cmd == "FORWARD":
-                            throttle = 1900
+                            throttle = 2000
                         elif cmd == "BACKWARD":
                             throttle = 1100
                         elif cmd == "LEFT":
@@ -97,6 +103,24 @@ async def websocket_endpoint(websocket: WebSocket):
                         elif cmd == "STOP":
                             steer = 1500
                             throttle = 1500
+                        elif cmd == "SET_MODE":
+                            mode_name = msg.get("value")
+                            if mode_name:
+                                print(f"[backend] Requesting mode change to: {mode_name}")
+                                # モードIDを取得
+                                mode_map = mav.mode_mapping()
+                                if mode_name in mode_map:
+                                    mode_id = mode_map[mode_name]
+                                    mav.set_mode(mode_id)
+                                    print(f"[backend] Mode set to {mode_name} (ID: {mode_id})")
+                                else:
+                                    print(f"[backend] Unknown mode: {mode_name}. Available: {list(mode_map.keys())}")
+                        elif cmd == "ARM":
+                            print("[backend] Sending ARM command")
+                            mav.arducopter_arm()
+                        elif cmd == "DISARM":
+                            print("[backend] Sending DISARM command")
+                            mav.arducopter_disarm()
 
                         send_rc_override()
                 except Exception as e:

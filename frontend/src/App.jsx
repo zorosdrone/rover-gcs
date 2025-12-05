@@ -69,8 +69,64 @@ function App() {
         backgroundColor: status.includes("Connected") ? "#d4edda" : "#f8d7da",
         marginBottom: "20px"
       }}>
-        Status: <strong>{status}</strong>
+        <div>Connection: <strong>{status}</strong></div>
+        {telemetry.HEARTBEAT && (
+          <div style={{ marginTop: "10px", display: "flex", gap: "20px" }}>
+            <div>Mode: <strong>{telemetry.HEARTBEAT.mode_name}</strong></div>
+            <div>State: <strong style={{ color: telemetry.HEARTBEAT.is_armed ? "red" : "green" }}>
+              {telemetry.HEARTBEAT.is_armed ? "ARMED" : "DISARMED"}
+            </strong></div>
+          </div>
+        )}
       </div>
+
+      {/* HUD情報 */}
+      <div style={{ border: "1px solid #ccc", padding: "10px", marginBottom: "20px", backgroundColor: "#f9f9f9" }}>
+        <h3>🚀 HUD</h3>
+        {telemetry.VFR_HUD ? (
+          <div style={{ fontSize: "1.2em", display: "flex", gap: "20px", flexWrap: "wrap" }}>
+            <div><strong>Speed:</strong> {telemetry.VFR_HUD.groundspeed.toFixed(2)} m/s</div>
+            <div><strong>Heading:</strong> {telemetry.VFR_HUD.heading}°</div>
+            <div style={{ color: "#666" }}>Throttle: {telemetry.VFR_HUD.throttle}%</div>
+            <div style={{ color: "#666" }}>Alt: {telemetry.VFR_HUD.alt.toFixed(2)} m</div>
+          </div>
+        ) : (
+          <div>No Data</div>
+        )}
+      </div>
+      {/* Control Panel (Arming & Mode) */}
+      <div style={{ display: "flex", gap: "40px", marginBottom: "20px", alignItems: "flex-start" }}>
+        {/* Arm/Disarm */}
+        <div>
+          <h2>Arming</h2>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button 
+              onClick={() => sendCommand('ARM')}
+              style={{ backgroundColor: "#28a745", color: "white", border: "none", padding: "10px 20px", cursor: "pointer" }}
+            >
+              ARM
+            </button>
+            <button 
+              onClick={() => sendCommand('DISARM')}
+              style={{ backgroundColor: "#dc3545", color: "white", border: "none", padding: "10px 20px", cursor: "pointer" }}
+            >
+              DISARM
+            </button>
+          </div>
+        </div>
+
+        {/* モード変更 */}
+        <div>
+          <h2>Mode Selection</h2>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button onClick={() => sendCommand('SET_MODE', 'MANUAL')}>Manual</button>
+            <button onClick={() => sendCommand('SET_MODE', 'GUIDED')}>Guided</button>
+            <button onClick={() => sendCommand('SET_MODE', 'AUTO')}>Auto</button>
+          </div>
+        </div>
+      </div>
+
+
 
       {/* 操作用ボタン */}
       <div style={{ marginBottom: "20px" }}>
