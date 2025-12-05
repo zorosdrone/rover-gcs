@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 function App() {
   const [status, setStatus] = useState("Disconnected")
   const [telemetry, setTelemetry] = useState({})
+  const wsRef = useRef(null)
 
   useEffect(() => {
     const isLocalDev =
@@ -16,6 +17,7 @@ function App() {
     console.log('Connecting to:', wsUrl)
 
     const ws = new WebSocket(wsUrl)
+    wsRef.current = ws
 
     ws.onopen = () => {
       setStatus("Connected to Backend")
@@ -34,8 +36,29 @@ function App() {
       setStatus("Disconnected")
     }
 
-    return () => ws.close()
+    return () => {
+      wsRef.current = null
+      ws.close()
+    }
   }, [])
+
+  const sendCommand = (command, value = null) => {
+    const ws = wsRef.current
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      console.warn('WebSocket not connected, cannot send command')
+      return
+    }
+
+    const payload = {
+      type: 'COMMAND',
+      command,
+      value,
+      timestamp: Date.now(),
+    }
+
+    console.log('Sending command:', payload)
+    ws.send(JSON.stringify(payload))
+  }
 
   return (
     <div style={{ padding: "20px", fontFamily: "monospace" }}>
@@ -47,6 +70,22 @@ function App() {
         marginBottom: "20px"
       }}>
         Status: <strong>{status}</strong>
+      </div>
+
+      {/* 操作用ボタン */}
+      <div style={{ marginBottom: "20px" }}>
+        <h2>Manual Control</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxWidth: "200px" }}>
+          <button onClick={() => sendCommand('FORWARD', 1.0)}>↑ Forward</button>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button onClick={() => sendCommand('LEFT', 1.0)}>← Left</button>
+            <button onClick={() => sendCommand('RIGHT', 1.0)}>Right →</button>
+          </div>
+          <button onClick={() => sendCommand('BACKWARD', 1.0)}>↓ Backward</button>
+          <button onClick={() => sendCommand('STOP')} style={{ marginTop: "10px", backgroundColor: "#f8d7da" }}>
+            ■ STOP
+          </button>
+        </div>
       </div>
 
       <div style={{ display: "grid", gap: "10px" }}>
