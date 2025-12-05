@@ -5,13 +5,11 @@ function App() {
   const [telemetry, setTelemetry] = useState({})
 
   useEffect(() => {
-    const isDev = import.meta.env.DEV
+    // 本番/開発どちらも「今開いているホスト」をベースにする
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host = window.location.host
 
-    // 開発時: ローカルの FastAPI(Uvicorn) に直結
-    // 本番時: 現在のホストの /ws へ接続（Caddy 経由）
-    const wsUrl = isDev
-      ? 'ws://127.0.0.1:8000/ws'
-      : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
+    const wsUrl = `${protocol}//${host}/ws`
 
     console.log('Connecting to:', wsUrl)
 
