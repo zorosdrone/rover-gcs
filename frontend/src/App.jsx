@@ -5,11 +5,13 @@ function App() {
   const [telemetry, setTelemetry] = useState({})
 
   useEffect(() => {
-    // 本番/開発どちらも「今開いているホスト」をベースにする
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const host = window.location.host
+    const isLocalDev =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'
 
-    const wsUrl = `${protocol}//${host}/ws`
+    const wsUrl = isLocalDev
+      ? 'ws://127.0.0.1:8000/ws' // ローカル開発: backend 直
+      : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws` // 本番: 同一ホスト
 
     console.log('Connecting to:', wsUrl)
 
