@@ -13,22 +13,22 @@ ArduPilot Rover の SITL (Software In The Loop) と `rover-gcs` を組み合わ�
 
 ```bash
 cd ~/GitHub/ardupilot/Rover
-sim_vehicle.py -v Rover -f rover-skid --console --map
+sim_vehicle.py -v Rover -f rover-skid --console --map --out=udp:127.0.0.1:14552
 ```
 
-- デフォルトで GCS 向け MAVLink ポートは `14550/udp` （追加ストリームが `14551`, `14552`, ...）
-- 起動ログに `UDP 0 0 0.0.0.0:14550` のように表示されるので、実際のポートを確認してください
+- デフォルトで GCS 向け MAVLink ポートは `14550/udp` ですが、本プロジェクトではバックエンド用に `14552/udp` を使用します。
+- `--out=udp:127.0.0.1:14552` オプションで、ローカルホストの 14552 ポートへ MAVLink パケットを転送します。
 
 ## 2. backend の接続ポート設定（ローカル開発用）
 
 `backend/main.py` では、SITL からの MAVLink を受信するポートを `CONNECTION_STRING` で指定します。
 
 ```python
-CONNECTION_STRING = 'udp:0.0.0.0:14550'  # SITL の GCS ポートに合わせる
+CONNECTION_STRING = 'udp:0.0.0.0:14552'  # SITL からの転送ポートに合わせる
 ```
 
-- SITL の GCS ポートが `14550` であれば上記のように設定
-- もし別のポートに変更している場合は、その番号に合わせてください
+- SITL の出力先ポートが `14552` であれば上記のように設定します。
+- `0.0.0.0` を指定することで、ローカルホストだけでなく、外部（WSLのホスト側やVPN経由など）からのパケットも受信可能です。
 
 ## 3. backend の起動（ローカル開発）
 
@@ -71,7 +71,7 @@ npm run dev
 - MAVLink ハートビート待ち開始:
 
 ```text
-[backend] Waiting for MAVLink heartbeat on udp:0.0.0.0:14550...
+[backend] Waiting for MAVLink heartbeat on udp:0.0.0.0:14552...
 ```
 
 - ハートビート受信時:
@@ -95,11 +95,11 @@ npm run dev
 
 ### B. MAVLink (UDP)
 
-- SITL 側の GCS ポート（例: `14550`）と `CONNECTION_STRING` のポート番号が一致しているか
+- SITL 側の出力ポート（例: `14552`）と `CONNECTION_STRING` のポート番号が一致しているか
 - 必要に応じて、UDP パケットが届いているかを `tcpdump` 等で確認
 
 ```bash
-sudo tcpdump -n udp port 14550
+sudo tcpdump -n udp port 14552
 ```
 
 パケットが届いていない場合:

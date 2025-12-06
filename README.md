@@ -1,12 +1,30 @@
 # rover-gcs
 
-ArduPilot Rover 向けのシンプルな Ground Control Station (GCS) Web アプリです。
-フロントエンド（React + Vite）とバックエンド（Python）で構成されています。
+ArduPilot Rover 向けの多機能な Ground Control Station (GCS) Web アプリケーションです。
+モダンな Web 技術（React + Vite）と Python バックエンドを組み合わせ、リアルタイムな機体制御とモニタリングを実現しています。
+
+## 主な機能
+
+- **リアルタイムテレメトリ表示**:
+  - 姿勢（Roll, Pitch, Yaw）
+  - 位置情報（Latitude, Longitude）
+  - HUD情報（速度, 方位, 高度, スロットル）
+  - 接続ステータスとモード表示
+- **機体制御**:
+  - Arm / Disarm 切り替え
+  - フライトモード変更（MANUAL, GUIDED, AUTO）
+  - マニュアル操作（前後左右の移動コマンド送信）
+- **インタラクティブマップ**:
+  - Leaflet ベースの地図表示
+  - 航空写真（Satellite）と標準地図（OSM）の切り替え
+  - 機体アイコンの切り替え（矢印 / 車）と方位連動
+  - 走行軌跡（Trajectory）の描画
+  - UIレイアウトに追従するレスポンシブな地図サイズ
 
 ## ディレクトリ構成
 
 - `frontend/` : React + Vite 製の Web UI
-- `backend/`  : Python 製の GCS バックエンド
+- `backend/`  : Python (FastAPI) 製の GCS バックエンド
 
 ## 必要要件
 
@@ -96,22 +114,22 @@ Tools/environment_install/install-prereqs-ubuntu.sh -y
 
 ### 2. Rover SITL の起動
 
-`ardupilot` ディレクトリで次を実行します:
+`ardupilot` ディレクトリで次を実行します。
+バックエンドが UDP 14552 ポートで待ち受けているため、`--out` オプションで出力を追加します。
 
 ```bash
 cd ~/ardupilot/ArduRover
-sim_vehicle.py -v Rover -f rover-skid --console --map
+sim_vehicle.py -v Rover -f rover-skid --console --map --out=udp:127.0.0.1:14552
 ```
-
-デフォルトでは UDP ポート `14550` で MAVLink が待ち受けられます。
 
 ### 3. rover-gcs との接続
 
-1. 上記の SITL を起動しておく
+1. 上記の SITL を起動しておく（`--out=udp:127.0.0.1:14552` を忘れずに）
 2. `rover-gcs` のバックエンド (`backend/main.py`) を起動
 3. フロントエンドを `npm run dev` で起動
 
-SITL とバックエンドが同じマシン上で動作している場合、特別な設定変更なしで MAVLink が受信できる想定です。挙動がおかしい場合は、`backend/main.py` 内の接続ポート設定を確認してください。
+バックエンドはデフォルトで `udp:0.0.0.0:14552` をリッスンします。
+SITL 以外の実機や他のシミュレータと接続する場合は、`backend/main.py` の `CONNECTION_STRING` を環境に合わせて変更してください。
 
 より詳しい開発運用手順は `docs/sitl.md` を参照してください。
 
