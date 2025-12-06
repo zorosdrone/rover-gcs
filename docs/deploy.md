@@ -164,8 +164,8 @@ sudo tcpdump -n udp port 14550
 3. Docker コンテナを再ビルド & 再起動します。
 
   ```bash
-  docker-compose down
-  docker-compose up -d --build
+  docker compose down
+  docker compose up -d --build
   ```
 
 4. 状態を確認します。
