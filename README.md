@@ -62,7 +62,34 @@ npm install
 
 ## 起動方法
 
-### ローカル開発（SITL + 手元バックエンド）
+### ローカル開発（推奨）
+
+便利な起動スクリプトを用意しています。
+
+#### 1. シミュレーター (SITL) の起動
+
+ターミナルを開き、以下のスクリプトを実行します。
+ArduPilot の SITL が起動し、MAVProxy コンソールとマップが表示されます。
+
+```bash
+./start_sitl.sh
+```
+
+#### 2. アプリケーション (Backend + Frontend) の起動
+
+別のターミナルを開き、以下のスクリプトを実行します。
+Python バックエンドと React フロントエンドが一括で起動します。
+
+```bash
+./start_dev.sh
+```
+
+ブラウザが自動的に開かない場合は `http://localhost:5173` にアクセスしてください。
+終了時は `Ctrl+C` を押すと、バックエンドとフロントエンドの両方が停止します。
+
+### 手動での起動（参考）
+
+スクリプトを使用せず、個別に起動する場合の手順です。
 
 #### 1. バックエンドの起動
 
@@ -80,8 +107,6 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 cd frontend
 npm run dev
 ```
-
-Vite が表示するローカルホストの URL（例: `http://localhost:5173`）にブラウザからアクセスします。
 
 ### Docker 本番運用（Caddy 等のリバースプロキシ前提）
 
@@ -114,7 +139,13 @@ Tools/environment_install/install-prereqs-ubuntu.sh -y
 
 ### 2. Rover SITL の起動
 
-`ardupilot` ディレクトリで次を実行します。
+プロジェクトルートにある `start_sitl.sh` を使用するのが簡単です。
+
+```bash
+./start_sitl.sh
+```
+
+手動で起動する場合は、`ardupilot` ディレクトリで次を実行します。
 バックエンドが UDP 14552 ポートで待ち受けているため、`--out` オプションで出力を追加します。
 
 ```bash
@@ -124,9 +155,8 @@ sim_vehicle.py -v Rover -f rover-skid --console --map --out=udp:127.0.0.1:14552
 
 ### 3. rover-gcs との接続
 
-1. 上記の SITL を起動しておく（`--out=udp:127.0.0.1:14552` を忘れずに）
-2. `rover-gcs` のバックエンド (`backend/main.py`) を起動
-3. フロントエンドを `npm run dev` で起動
+1. 上記の SITL を起動しておく
+2. `rover-gcs` のバックエンドとフロントエンドを起動（`./start_dev.sh`）
 
 バックエンドはデフォルトで `udp:0.0.0.0:14552` をリッスンします。
 SITL 以外の実機や他のシミュレータと接続する場合は、`backend/main.py` の `CONNECTION_STRING` を環境に合わせて変更してください。
