@@ -109,7 +109,7 @@ flowchart TD
         direction TB
         
         Start((Start)) --> Connect[WebSocket Accept]
-        Connect --> MavConnect[MAVLink Connect<br>(UDP 14552)]
+        Connect --> MavConnect["MAVLink Connect<br>(UDP 14552)"]
         MavConnect --> WaitHB[Wait for Heartbeat]
         WaitHB --> Gather{asyncio.gather}
         
@@ -118,16 +118,16 @@ flowchart TD
             Check -- "ATTITUDE / POS / HUD" --> ToDict[Convert to Dict]
             Check -- "Other" --> Recv
             ToDict --> AddInfo[Add Mode/Arm Info]
-            AddInfo --> SendWS[ws.send_text(JSON)]
+            AddInfo --> SendWS["ws.send_text(JSON)"]
             SendWS --> Sleep[Sleep 0.01s]
             Sleep --> Recv
         end
         
         subgraph Task2 ["commands_from_frontend()"]
-            WaitWS[ws.receive_text()] --> Parse[Parse JSON]
+            WaitWS["ws.receive_text()"] --> Parse[Parse JSON]
             Parse --> Switch{Command Type?}
             
-            Switch -- "ARM/DISARM" --> MavArm[mav.arducopter_arm/disarm]
+            Switch -- "ARM/DISARM" --> MavArm["mav.arducopter_arm/disarm"]
             Switch -- "SET_MODE" --> MavMode[mav.set_mode]
             Switch -- "MOVE (Fwd/Back/L/R)" --> UpdateRC[Update RC Variables]
             
