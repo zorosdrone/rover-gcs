@@ -35,6 +35,7 @@ ArduPilot Rover 向けの多機能な Ground Control Station (GCS) Web アプリ
   - 航空写真（Satellite）と標準地図（OSM）の切り替え
   - 機体アイコンの切り替え（矢印 / 車）と方位連動
   - 走行軌跡（Trajectory）の描画
+  - 地図クリックによる移動目標指示 (Guided Mode)
 - **UI / UX**:
   - スマホ横持ち (Landscape) に最適化されたレスポンシブデザイン
   - 必要な情報をサイドバーに集約し、地図領域を最大化
@@ -56,6 +57,11 @@ ArduPilot Rover 向けの多機能な Ground Control Station (GCS) Web アプリ
 - **設定**:
   - **Tx Interval**: マニュアル制御信号の定期送信間隔 (Off, 1s, 2s, 5s, 10s)。ArduPilotのGCSフェイルセーフ設定に合わせて調整してください。
   - **Throttle Range**: スロットル操作の感度/最大幅を設定します (Safe: 150 ~ Max: 1000)。
+
+### Guided Mode (地図クリック移動)
+
+地図上の任意の場所をクリックすると、確認ダイアログが表示されます。
+「OK」を選択すると、機体モードが **GUIDED** に切り替わり、指定した地点へ自律移動を開始します。
 
 ## ディレクトリ構成
 

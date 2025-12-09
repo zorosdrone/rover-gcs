@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl, Polyline } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl, Polyline, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
+import axios from 'axios'
 import './App.css'
 
 // 矢印アイコン生成関数
@@ -40,6 +41,55 @@ function MapUpdater({ center }) {
     map.setView(center);
   }, [center, map]);
   return null;
+}
+
+// APIのベースURLを取得する関数
+const getApiBaseUrl = () => {
+  const hostname = window.location.hostname;
+  const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
+  return isLocalDev
+    ? 'http://127.0.0.1:8000'
+    : `${window.location.protocol}//${window.location.host}`;
+};
+
+// バックエンドへ移動指令を送る関数
+const sendGoTo = async (lat, lon) => {
+  const baseUrl = getApiBaseUrl();
+  try {
+    const response = await axios.post(`${baseUrl}/api/command/goto`, {
+      lat: lat,
+      lon: lon
+    });
+    console.log("GoTo sent:", response.data);
+    alert("移動指令を送信しました");
+  } catch (error) {
+    console.error("GoTo error:", error);
+    alert("移動指令の送信に失敗しました");
+  }
+};
+
+// --- 地図クリック用コンポーネント (MapContainerの中で使う) ---
+function LocationMarker() {
+  const [position, setPosition] = useState(null)
+  
+  useMapEvents({
+    click(e) {
+      // クリックした座標をセット
+      setPosition(e.latlng)
+      
+      // 確認ダイアログを出す（誤操作防止）
+      if (window.confirm(`この地点へ移動しますか？\nLat: ${e.latlng.lat.toFixed(6)}\nLon: ${e.latlng.lng.toFixed(6)}`)) {
+        sendGoTo(e.latlng.lat, e.latlng.lng)
+      }
+    },
+  })
+
+  // クリックした場所に一時的にマーカーを表示
+  return position === null ? null : (
+    <Marker position={position}>
+      <Popup>Target Destination</Popup>
+    </Marker>
+  )
 }
 
 function App() {
@@ -499,6 +549,7 @@ function App() {
                       <MapUpdater center={[telemetry.GLOBAL_POSITION_INT.lat / 10000000, telemetry.GLOBAL_POSITION_INT.lon / 10000000]} />
                     </>
                   )}
+                  <LocationMarker />
                </MapContainer>
         </div>
       </div>

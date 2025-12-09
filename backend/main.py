@@ -1,10 +1,14 @@
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from pymavlink import mavutil
+from pydantic import BaseModel
 import asyncio
 import json
 
 app = FastAPI()
+
+# グローバル変数としてMAVLink接続を保持
+mav = None
 
 # React (localhost:5173) からのアクセスを許可
 app.add_middleware(
@@ -25,21 +29,21 @@ async def root():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    global mav
     await websocket.accept()
     print("[backend] Client connected via WebSocket")
 
     try:
         # MAVLink接続の確立（SITL からの出力を 14552 で待ち受け）
-        print(f"[backend] Waiting for MAVLink heartbeat on {CONNECTION_STRING}...")
-        
-        # mav = mavutil.mavlink_connection(CONNECTION_STRING)
-        # source_system=255 を追加 (これでGCSとして認識されます)
-        # mav = mavutil.mavlink_connection(CONNECTION_STRING, source_system=255)
-        mav = mavutil.mavlink_connection(CONNECTION_STRING, source_system=255, source_component=190)
-
-        # 最初のハートビートを待つ
-        mav.wait_heartbeat()
-        print("[backend] MAVLink heartbeat received")
+        # 既に接続済みの場合は再利用、なければ新規作成
+        if mav is None:
+            print(f"[backend] Waiting for MAVLink heartbeat on {CONNECTION_STRING}...")
+            mav = mavutil.mavlink_connection(CONNECTION_STRING, source_system=255, source_component=190)
+            # 最初のハートビートを待つ
+            mav.wait_heartbeat()
+            print("[backend] MAVLink heartbeat received")
+        else:
+            print("[backend] Using existing MAVLink connection")
 
         async def mavlink_to_frontend():
             while True:
@@ -142,3 +146,47 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         print(f"[backend] Error in websocket_endpoint: {e}")
         await websocket.close()
+
+# 移動指令用のデータモデル
+class GoToCommand(BaseModel):
+    lat: float
+    lon: float
+
+@app.post("/api/command/goto")
+async def goto_position(cmd: GoToCommand):
+    global mav
+    if mav:
+        # 1. モードを GUIDED に変更 (自律移動には必須)
+        # GUIDEDモードのIDを取得 (ArduRoverでは通常 10 または 15 ですが、マッピングから取得するのが確実)
+        mode_id = mav.mode_mapping().get('GUIDED')
+        if mode_id is None:
+             # Roverのバージョンによって異なる場合があるため、取れなければ決め打ち(Rover 4.0+なら15)
+             mode_id = 15 
+        
+        mav.mav.set_mode_send(
+            mav.target_system,
+            mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
+            mode_id
+        )
+        
+        # 2. ターゲット座標を送信 (int型: 緯度経度は 1e7 倍する)
+        # MAV_FRAME_GLOBAL_RELATIVE_ALT_INT = 3 (ホームからの相対高度)
+        mav.mav.set_position_target_global_int_send(
+            0, # time_boot_ms (not used)
+            mav.target_system,
+            mav.target_component,
+            mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+            # type_mask: 速度や加速度を無視し、位置だけ指定するビットマスク
+            # (0b0000111111111000 = 0x0DF8)
+            0x0DF8,
+            int(cmd.lat * 1e7), # lat
+            int(cmd.lon * 1e7), # lon
+            0, # alt (Roverなので0でOK、または必要なら指定)
+            0, 0, 0, # velocity
+            0, 0, 0, # accel
+            0, 0 # yaw
+        )
+        print(f"[backend] GoTo command sent: lat={cmd.lat}, lon={cmd.lon}")
+        return {"status": "success", "target": cmd}
+    
+    return {"status": "error", "message": "No connection"}
