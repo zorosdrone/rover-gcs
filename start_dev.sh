@@ -36,7 +36,7 @@ else
     echo "Error: Backend venv not found. Please run setup first."
     exit 1
 fi
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload > /tmp/backend.log 2>&1 &
+uvicorn main:app --host 0.0.0.0 --port 8000 > >(tee /tmp/backend.log) 2>&1 &
 BACKEND_PID=$!
 echo "  -> Backend PID: $BACKEND_PID"
 echo "  -> Logs: /tmp/backend.log"
@@ -45,7 +45,7 @@ sleep 2
 # 2. Frontend の起動
 echo "[2/3] Starting Frontend (Vite)..."
 cd ~/rover-gcs/frontend
-npm run dev > /tmp/frontend.log 2>&1 &
+npm run dev > >(tee /tmp/frontend.log) 2>&1 &
 FRONTEND_PID=$!
 echo "  -> Frontend PID: $FRONTEND_PID"
 echo "  -> Logs: /tmp/frontend.log"
@@ -75,5 +75,5 @@ echo ""
 echo "Press Ctrl+C to stop services."
 echo "=================================================="
 
-# ログをリアルタイム表示
-tail -f /tmp/backend.log /tmp/frontend.log
+# プロセスの終了を待機
+wait
