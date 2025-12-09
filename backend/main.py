@@ -151,6 +151,7 @@ async def websocket_endpoint(websocket: WebSocket):
 class GoToCommand(BaseModel):
     lat: float
     lon: float
+    speed: float | None = None
 
 @app.post("/api/command/goto")
 async def goto_position(cmd: GoToCommand):
@@ -168,8 +169,22 @@ async def goto_position(cmd: GoToCommand):
             mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
             mode_id
         )
+
+        # 2. 速度設定 (指定がある場合)
+        if cmd.speed is not None:
+            mav.mav.command_long_send(
+                mav.target_system,
+                mav.target_component,
+                mavutil.mavlink.MAV_CMD_DO_CHANGE_SPEED,
+                0, # confirmation
+                1, # param1: Speed type (1=Ground Speed)
+                cmd.speed, # param2: Speed (m/s)
+                -1, # param3: Throttle (-1=no change)
+                0, 0, 0, 0 # param4-7
+            )
+            print(f"[backend] Set speed to {cmd.speed} m/s")
         
-        # 2. ターゲット座標を送信 (int型: 緯度経度は 1e7 倍する)
+        # 3. ターゲット座標を送信 (int型: 緯度経度は 1e7 倍する)
         # MAV_FRAME_GLOBAL_RELATIVE_ALT_INT = 3 (ホームからの相対高度)
         mav.mav.set_position_target_global_int_send(
             0, # time_boot_ms (not used)

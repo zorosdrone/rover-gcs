@@ -53,15 +53,18 @@ const getApiBaseUrl = () => {
 };
 
 // バックエンドへ移動指令を送る関数
-const sendGoTo = async (lat, lon) => {
+const sendGoTo = async (lat, lon, speed) => {
   const baseUrl = getApiBaseUrl();
   try {
-    const response = await axios.post(`${baseUrl}/api/command/goto`, {
+    const payload = {
       lat: lat,
       lon: lon
-    });
+    };
+    if (speed) {
+      payload.speed = speed;
+    }
+    const response = await axios.post(`${baseUrl}/api/command/goto`, payload);
     console.log("GoTo sent:", response.data);
-    alert("移動指令を送信しました");
   } catch (error) {
     console.error("GoTo error:", error);
     alert("移動指令の送信に失敗しました");
@@ -70,25 +73,78 @@ const sendGoTo = async (lat, lon) => {
 
 // --- 地図クリック用コンポーネント (MapContainerの中で使う) ---
 function LocationMarker() {
-  const [position, setPosition] = useState(null)
+  const [targetPos, setTargetPos] = useState(null)
+  const [menuPos, setMenuPos] = useState(null)
+  const [selectedSpeed, setSelectedSpeed] = useState(1.0)
   
   useMapEvents({
-    click(e) {
-      // クリックした座標をセット
-      setPosition(e.latlng)
-      
-      // 確認ダイアログを出す（誤操作防止）
-      if (window.confirm(`この地点へ移動しますか？\nLat: ${e.latlng.lat.toFixed(6)}\nLon: ${e.latlng.lng.toFixed(6)}`)) {
-        sendGoTo(e.latlng.lat, e.latlng.lng)
-      }
+    click() {
+      setMenuPos(null)
+    },
+    contextmenu(e) {
+      setMenuPos(e.latlng)
     },
   })
 
-  // クリックした場所に一時的にマーカーを表示
-  return position === null ? null : (
-    <Marker position={position}>
-      <Popup>Target Destination</Popup>
-    </Marker>
+  const handleMoveHere = () => {
+    if (menuPos) {
+      sendGoTo(menuPos.lat, menuPos.lng, selectedSpeed)
+      setTargetPos(menuPos)
+      setMenuPos(null)
+    }
+  }
+
+  return (
+    <>
+      {targetPos && (
+        <Marker position={targetPos}>
+          <Popup>Target Destination</Popup>
+        </Marker>
+      )}
+      {menuPos && (
+        <Popup
+          position={menuPos}
+          closeButton={false}
+          offset={[0, 0]}
+          minWidth={150}
+        >
+          <div style={{ padding: '4px', textAlign: 'center' }}>
+            <div style={{ marginBottom: '8px', fontSize: '0.9em', color: '#333' }}>
+              速度を選択:
+              <select 
+                value={selectedSpeed} 
+                onChange={(e) => setSelectedSpeed(parseFloat(e.target.value))}
+                style={{ marginLeft: '5px', padding: '2px' }}
+              >
+                <option value={0.1}>0.1 m/s</option>
+                <option value={0.5}>0.5 m/s</option>
+                <option value={1.0}>1.0 m/s</option>
+                <option value={1.5}>1.5 m/s</option>
+              </select>
+            </div>
+            
+            <div 
+              onClick={handleMoveHere}
+              style={{ 
+                backgroundColor: '#007bff',
+                color: 'white',
+                padding: '6px 12px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '0.9em'
+              }}
+            >
+              ここに移動
+            </div>
+            
+            <div style={{ fontSize: '0.7em', color: '#666', marginTop: '6px' }}>
+              {menuPos.lat.toFixed(5)}, {menuPos.lng.toFixed(5)}
+            </div>
+          </div>
+        </Popup>
+      )}
+    </>
   )
 }
 
