@@ -50,7 +50,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     msg_type = msg.get_type()
 
                     # 特定のメッセージだけフロントへ送る（例: 姿勢と位置）
-                    if msg_type in ['ATTITUDE', 'GLOBAL_POSITION_INT', 'HEARTBEAT', 'VFR_HUD']:
+                    if msg_type in ['ATTITUDE', 'GLOBAL_POSITION_INT', 'HEARTBEAT', 'VFR_HUD', 'SYS_STATUS', 'STATUSTEXT']:
                         data = msg.to_dict()
 
                         # 追加情報: モード名やArmed状態
@@ -88,7 +88,14 @@ async def websocket_endpoint(websocket: WebSocket):
                 try:
                     data = await websocket.receive_text()
                     msg = json.loads(data)
-                    if msg.get("type") == "COMMAND":
+
+                    if msg.get("type") == "MANUAL_CONTROL":
+                        throttle = int(msg.get("throttle", 1500))
+                        steer = int(msg.get("steer", 1500))
+                        # print(f"[backend] MANUAL_CONTROL: steer={steer}, throttle={throttle}")
+                        send_rc_override()
+
+                    elif msg.get("type") == "COMMAND":
                         cmd = msg.get("command")
                         print(f"[backend] COMMAND received: {msg}")
 
