@@ -136,6 +136,83 @@ function App() {
     return () => clearInterval(timer)
   }, [transmitInterval])
 
+  // キーボード操作のためのEffect
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // 入力要素にフォーカスがある場合は無視
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return
+      if (e.repeat) return // キーリピート無視
+
+      let newThrottle = null
+      let newSteer = null
+
+      switch (e.key) {
+        case 'ArrowUp':
+          newThrottle = 1500 + throttleRange
+          break
+        case 'ArrowDown':
+          newThrottle = 1500 - throttleRange
+          break
+        case 'ArrowLeft':
+          newSteer = 1350 // Steerは固定範囲(Min)
+          break
+        case 'ArrowRight':
+          newSteer = 1650 // Steerは固定範囲(Max)
+          break
+        default:
+          return
+      }
+
+      setManualControl(prev => {
+        const next = { ...prev }
+        if (newThrottle !== null) next.throttle = newThrottle
+        if (newSteer !== null) next.steer = newSteer
+        
+        manualControlRef.current = next
+        sendManualControl(next.throttle, next.steer)
+        return next
+      })
+    }
+
+    const handleKeyUp = (e) => {
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return
+      
+      let resetThrottle = false
+      let resetSteer = false
+
+      switch (e.key) {
+        case 'ArrowUp':
+        case 'ArrowDown':
+          resetThrottle = true
+          break
+        case 'ArrowLeft':
+        case 'ArrowRight':
+          resetSteer = true
+          break
+        default:
+          return
+      }
+
+      setManualControl(prev => {
+        const next = { ...prev }
+        if (resetThrottle) next.throttle = 1500
+        if (resetSteer) next.steer = 1500
+        
+        manualControlRef.current = next
+        sendManualControl(next.throttle, next.steer)
+        return next
+      })
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [throttleRange])
+
   const sendCommand = (command, value = null) => {
     const ws = wsRef.current
     if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -223,10 +300,13 @@ function App() {
           <div style={{ border: "1px solid #ccc", padding: "10px", backgroundColor: "#f9f9f9", borderRadius: "4px" }}>
             {telemetry.VFR_HUD ? (
               <div style={{ fontSize: "1em", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5px" }}>
-                <div><strong>Spd:</strong> {telemetry.VFR_HUD.groundspeed.toFixed(1)}</div>
+                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {telemetry.VFR_HUD.groundspeed.toFixed(1)} m/s
+                  <span className="optional-unit"> ({(telemetry.VFR_HUD.groundspeed * 3.6).toFixed(1)} km/h)</span>
+                </div>
                 <div><strong>Hdg:</strong> {telemetry.VFR_HUD.heading}°</div>
                 <div style={{ color: "#666" }}>Thr: {telemetry.VFR_HUD.throttle}%</div>
-                <div style={{ color: "#666" }}>Alt: {telemetry.VFR_HUD.alt.toFixed(1)}</div>
+                <div style={{ color: "#666" }}>Alt: {telemetry.VFR_HUD.alt.toFixed(1)} m</div>
               </div>
             ) : (
               <div>No HUD Data</div>
