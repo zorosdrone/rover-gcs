@@ -166,7 +166,7 @@ function App() {
     e.preventDefault();
     try {
       const baseUrl = getApiBaseUrl();
-      const response = await axios.post(`${baseUrl}/login`, { password: passwordInput });
+      const response = await axios.post(`${baseUrl}/api/login`, { password: passwordInput });
       if (response.data.status === "ok") {
         setIsAuthenticated(true);
         localStorage.setItem("isAuthenticated", "true");

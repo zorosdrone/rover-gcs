@@ -36,7 +36,7 @@ def get_password():
     except FileNotFoundError:
         return "password"
 
-@app.post("/login")
+@app.post("/api/login")
 async def login(req: LoginRequest):
     if req.password == get_password():
         return {"status": "ok"}
