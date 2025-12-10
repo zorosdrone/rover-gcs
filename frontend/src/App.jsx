@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import axios from 'axios'
 import './App.css'
+import { Joystick } from 'react-joystick-component';
 
 // 矢印アイコン生成関数
 const createArrowIcon = (heading) => {
@@ -157,6 +158,7 @@ function App() {
   const [transmitInterval, setTransmitInterval] = useState(1000) // ms
   const [throttleRange, setThrottleRange] = useState(250) // Throttle range (+/-)
   const [statusMessages, setStatusMessages] = useState([]) // MAVLink messages log
+  const [controlMode, setControlMode] = useState('slider') // 'slider' or 'joystick'
   const manualControlRef = useRef({ throttle: 1500, steer: 1500 }) // 最新の値を保持するためのRef
   const wsRef = useRef(null)
 
@@ -392,6 +394,35 @@ function App() {
     sendManualControl(1500, 1500)
   }
 
+  const handleJoystickMove = (event) => {
+    // event.y: normalized value (-1 to 1)
+    // event.x: normalized value (-1 to 1)
+    
+    console.log("Joystick event:", event); // Debug log
+
+    // Map Y to Throttle
+    // Up (positive Y) -> Forward
+    const throttle = 1500 + event.y * throttleRange;
+    
+    // Map X to Steer
+    // Right (positive X) -> Right Turn
+    // Range is +/- 500 (1000 ~ 2000)
+    const steer = 1500 + event.x * 500;
+
+    const next = { 
+      throttle: Math.min(Math.max(Math.round(throttle), 1000), 2000), 
+      steer: Math.min(Math.max(Math.round(steer), 1000), 2000)
+    };
+    
+    setManualControl(next);
+    manualControlRef.current = next;
+    sendManualControl(next.throttle, next.steer);
+  };
+
+  const handleJoystickStop = () => {
+    stopManualControl();
+  };
+
   return (
     <div className="dashboard-container">
       <h1 className="dashboard-header">🚜 Rover GCS</h1>
@@ -475,6 +506,24 @@ function App() {
           {/* Manual Control */}
           <div style={{ display: "flex", flexDirection: "column", gap: "10px", border: "1px solid #ccc", padding: "10px", borderRadius: "8px" }}>
               
+              {/* Control Mode Toggle */}
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: "5px" }}>
+                <button
+                  onClick={() => setControlMode(prev => prev === 'slider' ? 'joystick' : 'slider')}
+                  style={{
+                    padding: "5px 10px",
+                    fontSize: "0.8em",
+                    cursor: "pointer",
+                    backgroundColor: "#007bff",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px"
+                  }}
+                >
+                  Switch to {controlMode === 'slider' ? 'Joystick' : 'Sliders'}
+                </button>
+              </div>
+
               {/* Settings Row */}
               <div style={{ display: "flex", gap: "5px" }}>
                   <select 
@@ -501,37 +550,67 @@ function App() {
                   </select>
               </div>
 
-              {/* Throttle Slider */}
-              <div>
-                <label style={{ display: "block", fontSize: "0.8em" }}>
-                  Thr: {manualControl.throttle}
-                </label>
-                <input 
-                  type="range" 
-                  min={1500 - throttleRange} 
-                  max={1500 + throttleRange} 
-                  step="1"
-                  value={manualControl.throttle} 
-                  onChange={handleThrottleChange}
-                  style={{ width: "100%" }}
-                />
-              </div>
+              {controlMode === 'slider' ? (
+                <>
+                  {/* Throttle Slider */}
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.8em" }}>
+                      Thr: {manualControl.throttle}
+                    </label>
+                    <input 
+                      type="range" 
+                      min={1500 - throttleRange} 
+                      max={1500 + throttleRange} 
+                      step="1"
+                      value={manualControl.throttle} 
+                      onChange={handleThrottleChange}
+                      style={{ width: "100%" }}
+                    />
+                  </div>
 
-              {/* Steering Slider */}
-              <div>
-                <label style={{ display: "block", fontSize: "0.8em" }}>
-                  Str: {manualControl.steer}
-                </label>
-                <input 
-                  type="range" 
-                  min="1000" 
-                  max="2000" 
-                  step="1"
-                  value={manualControl.steer} 
-                  onChange={handleSteerChange}
-                  style={{ width: "100%" }}
-                />
-              </div>
+                  {/* Steering Slider */}
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.8em" }}>
+                      Str: {manualControl.steer}
+                    </label>
+                    <input 
+                      type="range" 
+                      min="1000" 
+                      max="2000" 
+                      step="1"
+                      value={manualControl.steer} 
+                      onChange={handleSteerChange}
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+                </>
+              ) : (
+                /* Joystick Control */
+                <div style={{ 
+                  display: "flex", 
+                  flexDirection: "column",
+                  justifyContent: "center", 
+                  alignItems: "center",
+                  padding: "20px",
+                  minHeight: "180px",
+                  width: "100%",
+                  position: "relative",
+                  zIndex: 0 // Ensure new stacking context
+                }}>
+                  <Joystick 
+                    size={150} 
+                    sticky={false} 
+                    baseColor="#eee" 
+                    stickColor="#007bff" 
+                    move={handleJoystickMove} 
+                    stop={handleJoystickStop} 
+                  />
+                  <div style={{ marginTop: "15px", fontSize: "0.9em", fontWeight: "bold", color: "#555" }}>
+                    <div>Thr: {manualControl.throttle}</div>
+                    <div>Str: {manualControl.steer}</div>
+                  </div>
+                </div>
+              )}
 
               <button 
                 onClick={stopManualControl} 
