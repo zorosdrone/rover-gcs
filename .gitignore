@@ -24,3 +24,6 @@ frontend/.env
 
 # --- External Scripts ---
 external_scripts/
+
+# --- Security ---
+backend/password.txt
