@@ -181,7 +181,7 @@
 }
 
 /* Mobile Landscape Optimization */
-@media (max-height: 500px) {
+@media (max-height: 600px), (orientation: landscape) and (max-width: 960px) {
   .dashboard-container {
     padding: 5px;
   }
@@ -192,21 +192,59 @@
 
   .dashboard-header {
     margin-bottom: 5px;
+    height: auto;
+    min-height: 30px;
+  }
+
+  /* Force Row Layout: Left Control, Right Map */
+  .dashboard-content {
+    flex-direction: row !important;
   }
 
   .dashboard-sidebar {
-    flex: 0 0 200px; /* Very narrow sidebar */
+    flex: 0 0 220px !important; /* Fixed width sidebar */
+    width: 220px !important;
+    max-height: none !important; /* Allow full height */
+    overflow-y: auto;
     gap: 5px;
+    order: 1 !important;
   }
 
+  .dashboard-map-container {
+    flex: 1;
+    order: 2 !important;
+  }
+
+  /* Show Messages in Footer */
   .dashboard-footer {
-    display: none; /* Hide detailed telemetry at bottom to save space */
+    display: block !important; /* Re-enable footer */
+    flex: 0 0 80px; /* Fixed height for messages */
+    margin-top: 5px;
+    overflow: hidden;
+  }
+
+  .telemetry-container {
+    height: 100%;
+  }
+  
+  .telemetry-item.messages {
+    flex: 1 0 100%;
+    height: 100%;
+    max-height: none;
+    overflow-y: auto;
+  }
+
+  /* Hide other telemetry to save space */
+  .telemetry-item.status,
+  .telemetry-item.position,
+  .telemetry-item.heartbeat {
+    display: none !important;
   }
   
   /* Make buttons/inputs smaller */
   button, select, input {
     font-size: 0.8em;
-    padding: 5px !important;
+    padding: 2px !important;
   }
   
   h2, h3 {

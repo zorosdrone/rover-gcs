@@ -762,6 +762,7 @@ function App() {
                   zoom={18} 
                   maxZoom={22}
                   style={{ height: "100%", width: "100%" }}
+                  attributionControl={false}
                >
                   <LayersControl position="topright">
                     <LayersControl.BaseLayer name="Standard (OSM)">
