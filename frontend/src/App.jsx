@@ -474,8 +474,26 @@ function App() {
   if (!isAuthenticated) {
     console.log("Rendering login form. isLoggingIn:", isLoggingIn);
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", flexDirection: "column", backgroundColor: "#f0f2f5" }}>
-        <div style={{ padding: "2rem", backgroundColor: "white", borderRadius: "8px", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+      <div style={{ 
+        display: "flex", 
+        justifyContent: "center", 
+        alignItems: "center", 
+        minHeight: "100vh", // Use minHeight instead of height
+        padding: "20px",    // Add padding to prevent edge touching
+        boxSizing: "border-box",
+        flexDirection: "column", 
+        backgroundColor: "#f0f2f5",
+        overflowY: "auto"   // Allow scrolling if content is tall
+      }}>
+        <div style={{ 
+          padding: "2rem", 
+          backgroundColor: "white", 
+          borderRadius: "8px", 
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          width: "100%",
+          maxWidth: "400px", // Limit width
+          margin: "auto"     // Center in flex container with scroll
+        }}>
           <h2 style={{ marginBottom: "1rem", textAlign: "center" }}>Login</h2>
           <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             <input 
@@ -671,8 +689,8 @@ function App() {
                   flexDirection: "column",
                   justifyContent: "center", 
                   alignItems: "center",
-                  padding: "20px",
-                  minHeight: "180px",
+                  padding: "5px",
+                  minHeight: "160px",
                   width: "100%",
                   position: "relative",
                   zIndex: 0 // Ensure new stacking context
