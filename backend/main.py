@@ -4,6 +4,7 @@ from pymavlink import mavutil
 from pydantic import BaseModel
 import asyncio
 import json
+import os
 
 app = FastAPI()
 
@@ -22,6 +23,24 @@ app.add_middleware(
 # Rpanionからは "WSLのTailscale IP:14552" 宛に投げてもらう
 CONNECTION_STRING = 'udp:0.0.0.0:14552'
 
+class LoginRequest(BaseModel):
+    password: str
+
+def get_password():
+    try:
+        # backend/main.py と同じディレクトリにある password.txt を探す
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        password_path = os.path.join(base_dir, "password.txt")
+        with open(password_path, "r") as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return "password"
+
+@app.post("/login")
+async def login(req: LoginRequest):
+    if req.password == get_password():
+        return {"status": "ok"}
+    return {"status": "error", "message": "Invalid password"}
 
 @app.get("/")
 async def root():

@@ -150,6 +150,41 @@ function LocationMarker() {
 }
 
 function App() {
+  // Login State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [loginError, setLoginError] = useState("");
+
+  useEffect(() => {
+    const auth = localStorage.getItem("isAuthenticated");
+    if (auth === "true") {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const baseUrl = getApiBaseUrl();
+      const response = await axios.post(`${baseUrl}/login`, { password: passwordInput });
+      if (response.data.status === "ok") {
+        setIsAuthenticated(true);
+        localStorage.setItem("isAuthenticated", "true");
+        setLoginError("");
+      } else {
+        setLoginError("Invalid password");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setLoginError("Login failed");
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem("isAuthenticated");
+  };
+
   const [status, setStatus] = useState("Disconnected")
   const [telemetry, setTelemetry] = useState({})
   const [path, setPath] = useState([]) // 軌跡データ
@@ -423,9 +458,33 @@ function App() {
     stopManualControl();
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", flexDirection: "column", backgroundColor: "#f0f2f5" }}>
+        <div style={{ padding: "2rem", backgroundColor: "white", borderRadius: "8px", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+          <h2 style={{ marginBottom: "1rem", textAlign: "center" }}>Login</h2>
+          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <input 
+              type="password" 
+              value={passwordInput} 
+              onChange={(e) => setPasswordInput(e.target.value)} 
+              placeholder="Password"
+              style={{ padding: "0.5rem", fontSize: "1rem", borderRadius: "4px", border: "1px solid #ccc" }}
+            />
+            <button type="submit" style={{ padding: "0.5rem", fontSize: "1rem", cursor: "pointer", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: "4px" }}>Login</button>
+          </form>
+          {loginError && <p style={{ color: "red", marginTop: "1rem", textAlign: "center" }}>{loginError}</p>}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard-container">
-      <h1 className="dashboard-header">🚜 Rover GCS</h1>
+      <div className="dashboard-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1 style={{ margin: 0 }}>🚜 Rover GCS</h1>
+        <button onClick={handleLogout} style={{ padding: "5px 10px", cursor: "pointer", backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "4px" }}>Logout</button>
+      </div>
 
       <div className="dashboard-content">
         {/* Sidebar: Controls & Status */}
