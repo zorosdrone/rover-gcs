@@ -58,8 +58,11 @@ async def websocket_endpoint(websocket: WebSocket):
         if mav is None:
             print(f"[backend] Waiting for MAVLink heartbeat on {CONNECTION_STRING}...")
             mav = mavutil.mavlink_connection(CONNECTION_STRING, source_system=255, source_component=190)
-            # 最初のハートビートを待つ
-            mav.wait_heartbeat()
+            
+            # ブロッキング回避のため、別スレッドでハートビートを待つ
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, mav.wait_heartbeat)
+            
             print("[backend] MAVLink heartbeat received")
         else:
             print("[backend] Using existing MAVLink connection")

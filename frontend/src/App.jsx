@@ -154,6 +154,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     const auth = localStorage.getItem("isAuthenticated");
@@ -164,9 +165,14 @@ function App() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    console.log("Attempting login...");
+    setIsLoggingIn(true);
     try {
       const baseUrl = getApiBaseUrl();
+      console.log("Login URL:", `${baseUrl}/api/login`);
       const response = await axios.post(`${baseUrl}/api/login`, { password: passwordInput });
+      console.log("Login response:", response.data);
+      
       if (response.data.status === "ok") {
         setIsAuthenticated(true);
         localStorage.setItem("isAuthenticated", "true");
@@ -176,12 +182,17 @@ function App() {
       }
     } catch (error) {
       console.error("Login error:", error);
-      setLoginError("Login failed");
+      setLoginError("Login failed: " + (error.response?.statusText || error.message));
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
   const handleLogout = () => {
+    console.log("Logging out...");
     setIsAuthenticated(false);
+    setPasswordInput(""); // Clear password on logout
+    setIsLoggingIn(false); // Reset loading state
     localStorage.removeItem("isAuthenticated");
   };
 
@@ -198,6 +209,8 @@ function App() {
   const wsRef = useRef(null)
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const isLocalDev =
       window.location.hostname === 'localhost' ||
       window.location.hostname === '127.0.0.1'
@@ -263,7 +276,7 @@ function App() {
       wsRef.current = null
       ws.close()
     }
-  }, [])
+  }, [isAuthenticated])
 
   // 定期送信のためのEffect
   useEffect(() => {
@@ -459,6 +472,7 @@ function App() {
   };
 
   if (!isAuthenticated) {
+    console.log("Rendering login form. isLoggingIn:", isLoggingIn);
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", flexDirection: "column", backgroundColor: "#f0f2f5" }}>
         <div style={{ padding: "2rem", backgroundColor: "white", borderRadius: "8px", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
@@ -471,7 +485,14 @@ function App() {
               placeholder="Password"
               style={{ padding: "0.5rem", fontSize: "1rem", borderRadius: "4px", border: "1px solid #ccc" }}
             />
-            <button type="submit" style={{ padding: "0.5rem", fontSize: "1rem", cursor: "pointer", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: "4px" }}>Login</button>
+            <button 
+              type="submit" 
+              disabled={isLoggingIn} 
+              onClick={() => console.log("Login button clicked")}
+              style={{ padding: "0.5rem", fontSize: "1rem", cursor: isLoggingIn ? "not-allowed" : "pointer", backgroundColor: isLoggingIn ? "#ccc" : "#007bff", color: "white", border: "none", borderRadius: "4px" }}
+            >
+              {isLoggingIn ? "Logging in..." : "Login"}
+            </button>
           </form>
           {loginError && <p style={{ color: "red", marginTop: "1rem", textAlign: "center" }}>{loginError}</p>}
         </div>
