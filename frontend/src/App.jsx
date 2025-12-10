@@ -790,8 +790,8 @@ function App() {
 
       {/* Footer: Telemetry */}
       <div className="dashboard-footer">
-          <div style={{ display: "flex", gap: "10px" }}>
-            <div style={{ flex: 2, border: "1px solid #ccc", padding: "5px", fontSize: "0.7em", overflowY: "auto", maxHeight: "80px" }}>
+          <div className="telemetry-container">
+            <div className="telemetry-item messages">
               <strong>Messages</strong>
               {statusMessages.length === 0 && <div>No messages</div>}
               {statusMessages.map(msg => (
@@ -800,7 +800,7 @@ function App() {
                 </div>
               ))}
             </div>
-            <div style={{ flex: 1, border: "1px solid #ccc", padding: "5px", fontSize: "0.7em" }}>
+            <div className="telemetry-item status">
               <strong>Status</strong>
               <pre style={{ overflowX: "auto", margin: 0 }}>
                 Bat: {telemetry.SYS_STATUS ? `${(telemetry.SYS_STATUS.voltage_battery/1000).toFixed(1)}V` : 'N/A'}{'\n'}
@@ -808,11 +808,11 @@ function App() {
                 Load: {telemetry.SYS_STATUS ? `${telemetry.SYS_STATUS.load/10}%` : 'N/A'}
               </pre>
             </div>
-            <div style={{ flex: 1, border: "1px solid #ccc", padding: "5px", fontSize: "0.7em" }}>
+            <div className="telemetry-item position">
               <strong>Position</strong>
               <pre style={{ overflowX: "auto", margin: 0 }}>{JSON.stringify(telemetry.GLOBAL_POSITION_INT, null, 2)}</pre>
             </div>
-            <div style={{ flex: 1, border: "1px solid #ccc", padding: "5px", fontSize: "0.7em" }}>
+            <div className="telemetry-item heartbeat">
               <strong>Heartbeat</strong>
               <pre style={{ overflowX: "auto", margin: 0 }}>{JSON.stringify(telemetry.HEARTBEAT, null, 2)}</pre>
             </div>

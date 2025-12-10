@@ -92,10 +92,58 @@
   overflow-x: auto;
 }
 
+/* Telemetry Footer Layout */
+.telemetry-container {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap; /* Allow items to wrap on small screens */
+}
+
+.telemetry-item {
+  border: 1px solid #ccc;
+  padding: 5px;
+  font-size: 0.7em;
+  background-color: white;
+  box-sizing: border-box;
+}
+
+/* Messages: High priority, takes more space */
+.telemetry-item.messages {
+  flex: 2 1 300px; /* Grow: 2, Shrink: 1, Basis: 300px */
+  overflow-y: auto;
+  max-height: 80px;
+}
+
+/* Others: Lower priority */
+.telemetry-item.status,
+.telemetry-item.position,
+.telemetry-item.heartbeat {
+  flex: 1 1 150px; /* Grow: 1, Shrink: 1, Basis: 150px */
+  overflow: hidden; /* Prevent content from breaking layout */
+}
+
 /* Responsive Adjustments */
 @media (max-width: 768px) {
   .dashboard-sidebar {
     flex: 0 0 240px; /* Narrower on tablets/small screens */
+  }
+  
+  .telemetry-item.messages {
+    flex: 1 0 100%; /* Take full width on mobile */
+    max-height: 120px; /* Allow a bit more height if needed */
+    order: 1;
+  }
+  
+  .telemetry-item.status {
+    order: 2;
+  }
+  
+  .telemetry-item.position {
+    order: 3;
+  }
+  
+  .telemetry-item.heartbeat {
+    order: 4;
   }
 }
 
