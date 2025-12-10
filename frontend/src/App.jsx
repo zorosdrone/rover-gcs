@@ -155,7 +155,7 @@ function App() {
   const [iconType, setIconType] = useState('arrow') // 'arrow' or 'car'
   const [manualControl, setManualControl] = useState({ throttle: 1500, steer: 1500 })
   const [transmitInterval, setTransmitInterval] = useState(1000) // ms
-  const [throttleRange, setThrottleRange] = useState(150) // Throttle range (+/-)
+  const [throttleRange, setThrottleRange] = useState(250) // Throttle range (+/-)
   const [statusMessages, setStatusMessages] = useState([]) // MAVLink messages log
   const manualControlRef = useRef({ throttle: 1500, steer: 1500 }) // 最新の値を保持するためのRef
   const wsRef = useRef(null)
@@ -260,10 +260,10 @@ function App() {
           newThrottle = 1500 - throttleRange
           break
         case 'ArrowLeft':
-          newSteer = 1350 // Steerは固定範囲(Min)
+          newSteer = 1000 // Steerは固定範囲(Min)
           break
         case 'ArrowRight':
-          newSteer = 1650 // Steerは固定範囲(Max)
+          newSteer = 2000 // Steerは固定範囲(Max)
           break
         default:
           return
@@ -467,6 +467,8 @@ function App() {
                     style={{ flex: 1, padding: "2px", fontSize: "0.8em" }}
                   >
                     <option value="0">Tx: Off</option>
+                    <option value="100">Tx: 0.1s</option>
+                    <option value="500">Tx: 0.5s</option>
                     <option value="1000">Tx: 1s</option>
                     <option value="2000">Tx: 2s</option>
                     <option value="5000">Tx: 5s</option>
@@ -477,7 +479,6 @@ function App() {
                     onChange={(e) => setThrottleRange(Number(e.target.value))}
                     style={{ flex: 1, padding: "2px", fontSize: "0.8em" }}
                   >
-                    <option value="150">Rg: 150</option>
                     <option value="250">Rg: 250</option>
                     <option value="500">Rg: 500</option>
                     <option value="1000">Rg: 1000</option>
@@ -507,8 +508,8 @@ function App() {
                 </label>
                 <input 
                   type="range" 
-                  min="1350" 
-                  max="1650" 
+                  min="1000" 
+                  max="2000" 
                   step="1"
                   value={manualControl.steer} 
                   onChange={handleSteerChange}
