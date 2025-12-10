@@ -254,15 +254,23 @@ function App() {
 
       switch (e.key) {
         case 'ArrowUp':
+        case 'e':
+        case 'E':
           newThrottle = 1500 + throttleRange
           break
         case 'ArrowDown':
+        case 'd':
+        case 'D':
           newThrottle = 1500 - throttleRange
           break
         case 'ArrowLeft':
+        case 's':
+        case 'S':
           newSteer = 1000 // Steerは固定範囲(Min)
           break
         case 'ArrowRight':
+        case 'f':
+        case 'F':
           newSteer = 2000 // Steerは固定範囲(Max)
           break
         default:
@@ -289,10 +297,18 @@ function App() {
       switch (e.key) {
         case 'ArrowUp':
         case 'ArrowDown':
+        case 'e':
+        case 'E':
+        case 'd':
+        case 'D':
           resetThrottle = true
           break
         case 'ArrowLeft':
         case 'ArrowRight':
+        case 's':
+        case 'S':
+        case 'f':
+        case 'F':
           resetSteer = true
           break
         default:
