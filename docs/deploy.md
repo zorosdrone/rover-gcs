@@ -33,7 +33,7 @@ ArduPilot Rover の SITL (Software In The Loop) と `rover-gcs` を組み合わ�
 
 ```bash
 cd ~/GitHub/ardupilot/Rover
-sim_vehicle.py -v Rover -f rover-skid --console --map --out=udp:127.0.0.1:14552
+sim_vehicle.py -v Rover --console --map --out=udp:127.0.0.1:14552
 ```
 
 - デフォルトで GCS 向け MAVLink ポートは `14550/udp` ですが、本プロジェクトではバックエンド用に `14552/udp` を使用します。
@@ -141,7 +141,7 @@ sudo tcpdump -n udp port 14552
   ```bash
   # SITL（ローカル検証用）
   cd ~/GitHub/ardupilot/Rover
-  sim_vehicle.py -v Rover -f rover-skid --console --map \
+  sim_vehicle.py -v Rover  --console --map \
     --out=udp:127.0.0.1:14552
 
   # backend
@@ -212,7 +212,7 @@ sudo tcpdump -n udp port 14552
   ```bash
   # WSL 内などから、本番サーバーに向けて SITL を起動
   cd ~/GitHub/ardupilot/Rover
-  sim_vehicle.py -v Rover -f rover-skid --console --map \
+  sim_vehicle.py -v Rover  --console --map \
     --out=udp:<本番サーバーのVPN IP>:14552
   ```
 
