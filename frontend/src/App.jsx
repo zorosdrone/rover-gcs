@@ -603,7 +603,9 @@ function App() {
                     baseColor="#eee" 
                     stickColor="#007bff" 
                     move={handleJoystickMove} 
-                    stop={handleJoystickStop} 
+                    stop={handleJoystickStop}
+                    controlPlaneShape="square"
+                    baseShape="square"
                   />
                   <div style={{ marginTop: "15px", fontSize: "0.9em", fontWeight: "bold", color: "#555" }}>
                     <div>Thr: {manualControl.throttle}</div>
