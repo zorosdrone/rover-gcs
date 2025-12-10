@@ -709,13 +709,14 @@ function App() {
       {/* Footer: Telemetry */}
       <div className="dashboard-footer">
           <div style={{ display: "flex", gap: "10px" }}>
-            <div style={{ flex: 1, border: "1px solid #ccc", padding: "5px", fontSize: "0.7em" }}>
-              <strong>Heartbeat</strong>
-              <pre style={{ overflowX: "auto", margin: 0 }}>{JSON.stringify(telemetry.HEARTBEAT, null, 2)}</pre>
-            </div>
-            <div style={{ flex: 1, border: "1px solid #ccc", padding: "5px", fontSize: "0.7em" }}>
-              <strong>Position</strong>
-              <pre style={{ overflowX: "auto", margin: 0 }}>{JSON.stringify(telemetry.GLOBAL_POSITION_INT, null, 2)}</pre>
+            <div style={{ flex: 2, border: "1px solid #ccc", padding: "5px", fontSize: "0.7em", overflowY: "auto", maxHeight: "80px" }}>
+              <strong>Messages</strong>
+              {statusMessages.length === 0 && <div>No messages</div>}
+              {statusMessages.map(msg => (
+                <div key={msg.id} style={{ borderBottom: "1px solid #eee" }}>
+                  <span style={{ color: "#888" }}>{msg.time}</span> {msg.text}
+                </div>
+              ))}
             </div>
             <div style={{ flex: 1, border: "1px solid #ccc", padding: "5px", fontSize: "0.7em" }}>
               <strong>Status</strong>
@@ -725,14 +726,13 @@ function App() {
                 Load: {telemetry.SYS_STATUS ? `${telemetry.SYS_STATUS.load/10}%` : 'N/A'}
               </pre>
             </div>
-            <div style={{ flex: 2, border: "1px solid #ccc", padding: "5px", fontSize: "0.7em", overflowY: "auto", maxHeight: "80px" }}>
-              <strong>Messages</strong>
-              {statusMessages.length === 0 && <div>No messages</div>}
-              {statusMessages.map(msg => (
-                <div key={msg.id} style={{ borderBottom: "1px solid #eee" }}>
-                  <span style={{ color: "#888" }}>{msg.time}</span> {msg.text}
-                </div>
-              ))}
+            <div style={{ flex: 1, border: "1px solid #ccc", padding: "5px", fontSize: "0.7em" }}>
+              <strong>Position</strong>
+              <pre style={{ overflowX: "auto", margin: 0 }}>{JSON.stringify(telemetry.GLOBAL_POSITION_INT, null, 2)}</pre>
+            </div>
+            <div style={{ flex: 1, border: "1px solid #ccc", padding: "5px", fontSize: "0.7em" }}>
+              <strong>Heartbeat</strong>
+              <pre style={{ overflowX: "auto", margin: 0 }}>{JSON.stringify(telemetry.HEARTBEAT, null, 2)}</pre>
             </div>
           </div>
       </div>
