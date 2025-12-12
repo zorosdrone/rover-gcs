@@ -14,7 +14,6 @@ ArduPilot Rover の SITL (Software In The Loop) と `rover-gcs` を組み合わ�
   - [4. frontend の起動（ローカル開発）](#4-frontend-の起動ローカル開発)
   - [5. 正常動作チェック（ローカル開発）](#5-正常動作チェックローカル開発)
     - [backend ログ](#backend-ログ)
-    - [フロントエンド画面](#フロントエンド画面)
   - [6. トラブルシュートのチェックポイント（共通）](#6-トラブルシュートのチェックポイント共通)
     - [A. WebSocket 接続](#a-websocket-接続)
     - [B. MAVLink (UDP)](#b-mavlink-udp)
@@ -22,6 +21,17 @@ ArduPilot Rover の SITL (Software In The Loop) と `rover-gcs` を組み合わ�
     - [7.1 ローカルでのコード修正と確認](#71-ローカルでのコード修正と確認)
     - [7.2 本番サーバーへのデプロイ](#72-本番サーバーへのデプロイ)
     - [7.3 VPN 経由 SITL → 本番 backend の接続](#73-vpn-経由-sitl--本番-backend-の接続)
+  - [4. frontend の起動（ローカル開発）](#4-frontend-の起動ローカル開発-1)
+  - [5. 正常動作チェック（ローカル開発）](#5-正常動作チェックローカル開発-1)
+    - [backend ログ](#backend-ログ-1)
+    - [フロントエンド画面](#フロントエンド画面)
+  - [6. トラブルシュートのチェックポイント（共通）](#6-トラブルシュートのチェックポイント共通-1)
+    - [A. WebSocket 接続](#a-websocket-接続-1)
+    - [B. MAVLink (UDP)](#b-mavlink-udp-1)
+  - [7. 本番環境向けデプロイ \& 開発フロー](#7-本番環境向けデプロイ--開発フロー-1)
+    - [7.1 ローカルでのコード修正と確認](#71-ローカルでのコード修正と確認-1)
+    - [7.2 本番サーバーへのデプロイ](#72-本番サーバーへのデプロイ-1)
+    - [7.3 VPN 経由 SITL → 本番 backend の接続](#73-vpn-経由-sitl--本番-backend-の接続-1)
 
 ## 前提
 
@@ -55,6 +65,10 @@ CONNECTION_STRING = 'udp:0.0.0.0:14552'  # SITL からの転送ポートに合�
 ```bash
 cd ~/rover-gcs/backend
 source venv/bin/activate
+
+# パスワードファイルを作成（初回のみ）
+echo "password" > password.txt
+
 uvicorn main:app --host 0.0.0.0 --port 8000 
 ```
 
@@ -65,6 +79,98 @@ curl http://127.0.0.1:8000/
 ```
 
 - WebSocket は `ws://127.0.0.1:8000/ws` で待ち受けています
+- 認証APIは `POST /api/login` です
+
+## 4. frontend の起動（ローカル開発）
+
+```bash
+cd ~/rover-gcs/frontend
+npm run dev
+```
+
+- ブラウザで `http://localhost:5173` を開きます
+- 開発モードでは、`App.jsx` 内で `ws://127.0.0.1:8000/ws` に自動接続するようになっています
+
+## 5. 正常動作チェック（ローカル開発）
+
+### backend ログ
+
+`uvicorn` を実行しているターミナルに、次のようなログが出ていれば正常です。
+
+- WebSocket 接続時:
+
+```text
+[backend] Client connected via WebSocket
+```
+
+- MAVLink ハートビート待ち開始:
+
+```text
+[backend] Waiting for MAVLink heartbeat on udp:0.0.0.0:14552...
+```
+
+- ハートビート受信時:
+
+```text
+[backend] MAVLink heartbeat received
+```
+
+## 6. トラブルシュートのチェックポイント（共通）
+
+### A. WebSocket 接続
+
+- ブラウザの開発者ツール (F12) -> Network -> WS タブを確認
+- 接続エラーが出る場合、バックエンドが起動しているか、ポート番号が合っているか確認
+
+### B. MAVLink (UDP)
+
+- バックエンドが "Waiting for MAVLink heartbeat..." で止まっている場合、SITL からパケットが届いていません
+- SITL の `--out` オプションと、バックエンドの `CONNECTION_STRING` が一致しているか確認
+- ファイアウォール設定を確認
+
+## 7. 本番環境向けデプロイ & 開発フロー
+
+### 7.1 ローカルでのコード修正と確認
+
+1. `start_dev.sh` を使用すると、バックエンドとフロントエンドを一括で起動できます。
+   ```bash
+   ./start_dev.sh
+   ```
+2. コードを修正し、動作確認を行います。
+3. 変更をコミットしてプッシュします。
+   - **注意**: `backend/password.txt` は `.gitignore` に含まれているため、リポジトリにはコミットされません。
+
+### 7.2 本番サーバーへのデプロイ
+
+本番サーバー（Raspberry Pi等）では Docker Compose を使用して運用します。
+
+1. リポジトリをプルします。
+   ```bash
+   cd ~/rover-gcs
+   git pull origin main
+   ```
+
+2. パスワードファイルを設定します（初回、または変更時）。
+   ```bash
+   # ホスト側でファイルを作成
+   echo "your_secure_password" > backend/password.txt
+   ```
+
+3. コンテナをビルド・起動します。
+   ```bash
+   docker compose up -d --build
+   ```
+
+4. 稼働中のコンテナにパスワードファイルをコピーします（`docker-compose.yml` でマウントしていない場合）。
+   ```bash
+   docker cp backend/password.txt rover-backend:/app/password.txt
+   ```
+   ※ パスワードを変更した場合は、このコマンドを実行するだけで即時反映されます（再起動不要）。
+
+### 7.3 VPN 経由 SITL → 本番 backend の接続
+
+（省略）
+
 
 ## 4. frontend の起動（ローカル開発）
 

@@ -26,10 +26,13 @@ ArduPilot Rover 向けの多機能な Ground Control Station (GCS) Web アプリ
 - **機体制御**:
   - **システム**: Arm/Disarm 切り替え、モード変更 (MANUAL, GUIDED, AUTO, HOLD, RTL, SMART_RTL)
   - **マニュアル操作**:
-    - スライダーによるスロットル・ステアリング操作
+    - **ジョイスティック**: 仮想ジョイスティックによる直感的な操作（正方形領域でフルスロットル・フルステアが可能）
+    - **スライダー**: スロットルとステアリングを個別に調整可能なスライダーモード
     - キーボード操作 (矢印キー) 対応
     - スロットルレンジ調整 (+/- 150 ~ 1000)
     - 定期送信機能 (フェイルセーフ対策)
+- **セキュリティ**:
+  - **簡易認証**: 操作画面へのアクセス時にパスワード認証を要求
 - **インタラクティブマップ**:
   - Leaflet ベースの地図表示 (最大ズーム Lv22)
   - 航空写真（Satellite）と標準地図（OSM）の切り替え
@@ -37,7 +40,10 @@ ArduPilot Rover 向けの多機能な Ground Control Station (GCS) Web アプリ
   - 走行軌跡（Trajectory）の描画
   - 地図クリックによる移動目標指示 (Guided Mode)
 - **UI / UX**:
-  - スマホ横持ち (Landscape) に最適化されたレスポンシブデザイン
+  - **モバイル最適化**:
+    - スマホ横持ち (Landscape) 時に「左：操作パネル / 右：地図」の分割レイアウトを適用
+    - 縦持ち時は操作パネルを最上部に配置し、重要なログのみを表示
+    - `dvh` (Dynamic Viewport Height) 対応でブラウザのメニューバーによる表示崩れを防止
   - 必要な情報をサイドバーに集約し、地図領域を最大化
 
 ## 操作方法
@@ -91,6 +97,9 @@ cd backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+
+# パスワードファイルを作成（任意のパスワードを設定）
+echo "your_password" > password.txt
 ```
 
 ### 3. フロントエンドのセットアップ

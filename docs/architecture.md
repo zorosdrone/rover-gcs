@@ -79,12 +79,26 @@ sequenceDiagram
     participant BE as 🐍 Backend (FastAPI)
     participant Rover as 🚜 Rover (SITL/Pixhawk)
 
+    Note over User, FE: Authentication
+    User->>FE: Access Page
+    FE->>User: Show Login Form
+    User->>FE: Enter Password
+    FE->>BE: POST /api/login {"password": "..."}
+    BE->>BE: Check password.txt
+    alt Valid
+        BE-->>FE: 200 OK
+        FE->>User: Show Dashboard
+    else Invalid
+        BE-->>FE: 200 OK {"status": "error"}
+        FE->>User: Show Error
+    end
+
     Note over FE, BE: WebSocket Connection (ws://.../ws)
     FE->>BE: Connect
     BE-->>FE: Accept
 
     Note over BE, Rover: MAVLink Connection (UDP:14552)
-    BE->>Rover: Wait for Heartbeat
+    BE->>Rover: Wait for Heartbeat (Non-blocking)
     Rover-->>BE: HEARTBEAT
     BE->>BE: Connection Established
 
@@ -113,6 +127,7 @@ sequenceDiagram
 ### 内部処理フロー (backend/main.py)
 
 `backend/main.py` 内部では、主に2つの非同期タスクが並行して動作しています。
+また、MAVLinkのブロッキング処理（`wait_heartbeat` 等）は `loop.run_in_executor` を使用して別スレッドで実行し、メインのイベントループ（WebSocket通信等）を阻害しない設計になっています。
 
 ```mermaid
 flowchart TD
@@ -121,7 +136,7 @@ flowchart TD
         
         Start((Start)) --> Connect[WebSocket Accept]
         Connect --> MavConnect["MAVLink Connect<br>(UDP 14552)"]
-        MavConnect --> WaitHB[Wait for Heartbeat]
+        MavConnect --> WaitHB["Wait for Heartbeat<br>(run_in_executor)"]
         WaitHB --> Gather{asyncio.gather}
         
         subgraph Task1 ["mavlink_to_frontend()"]
