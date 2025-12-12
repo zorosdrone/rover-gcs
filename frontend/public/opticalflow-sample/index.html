@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCV.js Optical Flow Sample</title>
+    <link rel="stylesheet" href="style.css">
+    <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+</head>
+<body>
+    <h1>Optical Flow (Farneback)</h1>
+    <div id="status">Loading OpenCV.js...</div>
+    
+    <div class="container">
+        <div class="video-container">
+            <video id="video" playsinline autoplay muted></video>
+            <canvas id="canvasOutput"></canvas>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

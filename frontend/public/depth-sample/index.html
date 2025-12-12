@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Depth Estimation Sample</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- TensorFlow.js dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-segmentation@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/depth-estimation@latest"></script>
+</head>
+<body>
+    <h1>Depth Estimation (ARPortraitDepth)</h1>
+    <div id="status">Loading model...</div>
+    
+    <div class="container">
+        <div class="view-container">
+            <video id="video" playsinline autoplay muted></video>
+            <canvas id="canvas"></canvas>
+        </div>
+        <div class="controls">
+            <p>※このモデル(ARPortraitDepth)は人物に最適化されていますが、<br>
+            近い物体が白く、遠い物体が黒く表示されます。</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
