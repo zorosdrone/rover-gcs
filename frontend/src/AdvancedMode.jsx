@@ -5,6 +5,7 @@ import L from 'leaflet'
 import axios from 'axios'
 import './App.css'
 import { Joystick } from 'react-joystick-component';
+import VdoPlayerWithYolo from './VdoPlayerWithYolo';
 
 // 矢印アイコン生成関数
 const createArrowIcon = (heading) => {
@@ -539,12 +540,7 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
       border: '1px solid #ccc',
       flexShrink: 0
     }}>
-      <iframe 
-        src="https://vdo.ninja/?view=43wygAK&autoplay=1" 
-        title="Rover Camera"
-        style={{ width: '100%', height: '100%', border: 'none' }}
-        allow="autoplay; camera; microphone; fullscreen"
-      />
+      <VdoPlayerWithYolo viewId="43wygAK" />
     </div>
   );
 
@@ -831,7 +827,7 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
   return (
     <div className="dashboard-container" style={{ height: "auto", minHeight: "100vh", overflow: "visible" }}>
       <div className="dashboard-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ margin: 0 }}>🚜 Rover GCS (Advanced)</h1>
+        <h1 style={{ margin: 0 }}>🚜 Rover GCS (Advanced) v2</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button 
             onClick={() => setLayoutMode(prev => prev === 'map' ? 'camera' : 'map')} 
