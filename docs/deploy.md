@@ -359,7 +359,8 @@ git pull
 
 # 2. 本番用設定でビルド＆起動
 # (以前のコンテナがあれば再構築して再起動します)
-docker-compose -f docker-compose.prod.yml up --build -d
+# ※ docker-compose コマンドがない場合は "docker compose" (スペース区切り) を試してください
+docker compose -f docker-compose.prod.yml up --build -d
 ```
 
 - コンテナ名: `rover-gcs-prod`
