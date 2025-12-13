@@ -31,6 +31,9 @@ ArduPilot Rover の SITL (Software In The Loop) と `rover-gcs` を組み合わ�
     - [7.1 ローカルでのコード修正と確認](#71-ローカルでのコード修正と確認-1)
     - [7.2 本番サーバーへのデプロイ](#72-本番サーバーへのデプロイ-1)
     - [7.3 VPN 経由 SITL → 本番 backend の接続](#73-vpn-経由-sitl--本番-backend-の接続-1)
+  - [8. Dockerでの本番デプロイ（WebODM共存環境）](#8-dockerでの本番デプロイwebodm共存環境)
+    - [8.1 デプロイ手順](#81-デプロイ手順)
+    - [8.2 Caddy設定例 (HTTPS必須)](#82-caddy設定例-https必須)
 
 ## 前提
 
@@ -344,28 +347,39 @@ sudo tcpdump -n udp port 14552
 ## 8. Dockerでの本番デプロイ（WebODM共存環境）
 
 WebODMがポート8000を使用しているため、本番用Docker設定ではポート **8001** を使用するように設定しています。
-Nginxのリバースプロキシを経由してアクセスする構成です。
+また、フロントエンドのビルドもDocker内で行うため、ホスト側での `npm run build` は不要です。
 
 ### 8.1 デプロイ手順
 
 本番サーバー上で以下のコマンドを実行します。
-これにより、フロントエンドのビルドとバックエンドの起動が1つのコンテナで行われます。
 
 ```bash
-# 本番用設定でビルド＆起動
+# 1. ソースコードの更新
+git pull
+
+# 2. 本番用設定でビルド＆起動
+# (以前のコンテナがあれば再構築して再起動します)
 docker-compose -f docker-compose.prod.yml up --build -d
 ```
 
 - コンテナ名: `rover-gcs-prod`
 - ポート: `8001` (ホスト側) -> `8000` (コンテナ側)
+- 構成: 1つのコンテナ内で FastAPI が API と Reactアプリ(静的ファイル) の両方を配信します。
 
 ### 8.2 Caddy設定例 (HTTPS必須)
 
 VDO.Ninja (WebRTC) を使用するため、必ず **HTTPS** でアクセスする必要があります。
 Caddyを使用している場合、`Caddyfile` に以下を追加するだけで、自動的にHTTPS化とリバースプロキシ設定が行われます。
 
+以前のように `/api` や `/ws` を個別に設定する必要はありません。すべてのリクエストを `localhost:8001` に転送するだけで動作します。
+
 ```caddy
 rover.your-domain.com {
+    # Basic認証が必要な場合はここに記述
+    # basicauth / {
+    #    admin $2a$14$...
+    # }
+
     reverse_proxy 127.0.0.1:8001
 }
 ```
