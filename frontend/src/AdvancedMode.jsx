@@ -205,8 +205,16 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
   const [throttleRange, setThrottleRange] = useState(250) // Throttle range (+/-)
   const [statusMessages, setStatusMessages] = useState([]) // MAVLink messages log
   const [controlMode, setControlMode] = useState('slider') // 'slider' or 'joystick'
+  const [layoutMode, setLayoutMode] = useState('map') // 'map' or 'camera'
   const manualControlRef = useRef({ throttle: 1500, steer: 1500 }) // 最新の値を保持するためのRef
   const wsRef = useRef(null)
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth)
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -518,309 +526,361 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
     );
   }
 
+
+
+  const renderCamera = () => (
+    <div style={{ 
+      width: '100%', 
+      aspectRatio: '16/9', 
+      backgroundColor: '#000', 
+      marginBottom: '10px',
+      borderRadius: '4px',
+      overflow: 'hidden',
+      border: '1px solid #ccc',
+      flexShrink: 0
+    }}>
+      <iframe 
+        src="https://vdo.ninja/?view=43wygAK&autoplay=1" 
+        title="Rover Camera"
+        style={{ width: '100%', height: '100%', border: 'none' }}
+        allow="autoplay; camera; microphone; fullscreen"
+      />
+    </div>
+  );
+
+  const renderSidebarContent = () => (
+    <>
+      {/* Connection Status */}
+      <div style={{ 
+        padding: "10px", 
+        backgroundColor: status.includes("Connected") ? "#d4edda" : "#f8d7da",
+        borderRadius: "4px",
+        border: "1px solid #ccc"
+      }}>
+        <div>Connection: <strong>{status}</strong></div>
+        {telemetry.HEARTBEAT && (
+          <div style={{ marginTop: "5px", display: "flex", gap: "10px", fontSize: "0.9em" }}>
+            <div>Mode: <strong>{telemetry.HEARTBEAT.mode_name}</strong></div>
+            <div>State: <strong style={{ color: telemetry.HEARTBEAT.is_armed ? "red" : "green" }}>
+              {telemetry.HEARTBEAT.is_armed ? "ARMED" : "DISARMED"}
+            </strong></div>
+          </div>
+        )}
+      </div>
+
+      {/* HUD */}
+      <div style={{ border: "1px solid #ccc", padding: "10px", backgroundColor: "#f9f9f9", borderRadius: "4px" }}>
+        {telemetry.VFR_HUD ? (
+          <div style={{ fontSize: "1em", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5px" }}>
+            <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {telemetry.VFR_HUD.groundspeed.toFixed(1)} m/s
+              <span className="optional-unit"> ({(telemetry.VFR_HUD.groundspeed * 3.6).toFixed(1)} km/h)</span>
+            </div>
+            <div><strong>Hdg:</strong> {telemetry.VFR_HUD.heading}°</div>
+            <div style={{ color: "#666" }}>Thr: {telemetry.VFR_HUD.throttle}%</div>
+            <div style={{ color: "#666" }}>Alt: {telemetry.VFR_HUD.alt.toFixed(1)} m</div>
+          </div>
+        ) : (
+          <div>No HUD Data</div>
+        )}
+      </div>
+
+      {/* System Control */}
+      <div style={{ display: "flex", gap: "5px" }}>
+          <select 
+            value={telemetry.HEARTBEAT?.is_armed ? "ARM" : "DISARM"}
+            onChange={(e) => sendCommand(e.target.value)}
+            style={{ 
+              padding: "8px", 
+              flex: 1,
+              backgroundColor: telemetry.HEARTBEAT?.is_armed ? "#d4edda" : "#f8d7da",
+              fontWeight: "bold",
+              borderRadius: "4px",
+              border: "1px solid #ccc"
+            }}
+          >
+            <option value="DISARM">DISARMED</option>
+            <option value="ARM">ARMED</option>
+          </select>
+
+          <select 
+            value={telemetry.HEARTBEAT?.mode_name || "MANUAL"}
+            onChange={(e) => sendCommand('SET_MODE', e.target.value)}
+            style={{ 
+              padding: "8px", 
+              flex: 1,
+              borderRadius: "4px",
+              border: "1px solid #ccc"
+            }}
+          >
+            <option value="MANUAL">MANUAL</option>
+            <option value="GUIDED">GUIDED</option>
+            <option value="AUTO">AUTO</option>
+            <option value="HOLD">HOLD</option>
+            <option value="RTL">RTL</option>
+            <option value="SMART_RTL">SMART_RTL</option>
+          </select>
+      </div>
+
+      {/* Manual Control */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px", border: "1px solid #ccc", padding: "10px", borderRadius: "8px" }}>
+          
+          {/* Control Mode Toggle */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "5px" }}>
+            <button
+              onClick={() => setControlMode(prev => prev === 'slider' ? 'joystick' : 'slider')}
+              style={{
+                padding: "5px 10px",
+                fontSize: "0.8em",
+                cursor: "pointer",
+                backgroundColor: "#007bff",
+                color: "white",
+                border: "none",
+                borderRadius: "4px"
+              }}
+            >
+              Switch to {controlMode === 'slider' ? 'Joystick' : 'Sliders'}
+            </button>
+          </div>
+
+          {/* Settings Row */}
+          <div style={{ display: "flex", gap: "5px" }}>
+              <select 
+                value={transmitInterval} 
+                onChange={(e) => setTransmitInterval(Number(e.target.value))}
+                style={{ flex: 1, padding: "2px", fontSize: "0.8em" }}
+              >
+                <option value="0">Tx: Off</option>
+                <option value="100">Tx: 0.1s</option>
+                <option value="500">Tx: 0.5s</option>
+                <option value="1000">Tx: 1s</option>
+                <option value="2000">Tx: 2s</option>
+                <option value="5000">Tx: 5s</option>
+              </select>
+
+              <select 
+                value={throttleRange} 
+                onChange={(e) => setThrottleRange(Number(e.target.value))}
+                style={{ flex: 1, padding: "2px", fontSize: "0.8em" }}
+              >
+                <option value="250">Rg: 250</option>
+                <option value="500">Rg: 500</option>
+                <option value="1000">Rg: 1000</option>
+              </select>
+          </div>
+
+          {controlMode === 'slider' ? (
+            <>
+              {/* Throttle Slider */}
+              <div>
+                <label style={{ display: "block", fontSize: "0.8em" }}>
+                  Thr: {manualControl.throttle}
+                </label>
+                <input 
+                  type="range" 
+                  min={1500 - throttleRange} 
+                  max={1500 + throttleRange} 
+                  step="1"
+                  value={manualControl.throttle} 
+                  onChange={handleThrottleChange}
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              {/* Steering Slider */}
+              <div>
+                <label style={{ display: "block", fontSize: "0.8em" }}>
+                  Str: {manualControl.steer}
+                </label>
+                <input 
+                  type="range" 
+                  min="1000" 
+                  max="2000" 
+                  step="1"
+                  value={manualControl.steer} 
+                  onChange={handleSteerChange}
+                  style={{ width: "100%" }}
+                />
+              </div>
+            </>
+          ) : (
+            /* Joystick Control */
+            <div style={{ 
+              display: "flex", 
+              flexDirection: "column",
+              justifyContent: "center", 
+              alignItems: "center",
+              padding: "5px",
+              minHeight: "160px",
+              width: "100%",
+              position: "relative",
+              zIndex: 0 // Ensure new stacking context
+            }}>
+              <Joystick 
+                size={150} 
+                sticky={false} 
+                baseColor="#eee" 
+                stickColor="#007bff" 
+                move={handleJoystickMove} 
+                stop={handleJoystickStop}
+                controlPlaneShape="square"
+                baseShape="square"
+              />
+              <div style={{ marginTop: "15px", fontSize: "0.9em", fontWeight: "bold", color: "#555" }}>
+                <div>Thr: {manualControl.throttle}</div>
+                <div>Str: {manualControl.steer}</div>
+              </div>
+            </div>
+          )}
+
+          <button 
+            onClick={stopManualControl} 
+            style={{ 
+              backgroundColor: "#dc3545", 
+              color: "white", 
+              border: "none", 
+              padding: "8px", 
+              cursor: "pointer",
+              fontWeight: "bold",
+              borderRadius: "4px",
+              width: "100%"
+            }}
+          >
+            STOP
+          </button>
+      </div>
+    </>
+  );
+
+  const renderMap = () => (
+    <div className="dashboard-map-container">
+           {/* Icon Toggle */}
+           <div style={{ position: "absolute", top: "10px", left: "50px", zIndex: 1000, backgroundColor: "white", padding: "5px", borderRadius: "4px", boxShadow: "0 1px 5px rgba(0,0,0,0.4)" }}>
+             <label style={{ marginRight: "10px", cursor: "pointer", fontSize: "0.8em" }}>
+               <input 
+                 type="radio" 
+                 name="iconType" 
+                 value="arrow" 
+                 checked={iconType === 'arrow'} 
+                 onChange={() => setIconType('arrow')} 
+               /> Arrow
+             </label>
+             <label style={{ cursor: "pointer", fontSize: "0.8em" }}>
+               <input 
+                 type="radio" 
+                 name="iconType" 
+                 value="car" 
+                 checked={iconType === 'car'} 
+               onChange={() => setIconType('car')} 
+               /> Car
+             </label>
+           </div>
+
+           <MapContainer 
+              center={telemetry.GLOBAL_POSITION_INT
+                ? [telemetry.GLOBAL_POSITION_INT.lat / 10000000, telemetry.GLOBAL_POSITION_INT.lon / 10000000]
+                : [35.867722, 140.263472]} 
+              zoom={18} 
+              maxZoom={22}
+              style={{ height: "100%", width: "100%" }}
+              attributionControl={false}
+           >
+              <LayersControl position="topright">
+                <LayersControl.BaseLayer name="Standard (OSM)">
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    maxNativeZoom={19}
+                    maxZoom={22}
+                  />
+                </LayersControl.BaseLayer>
+                <LayersControl.BaseLayer checked name="Satellite (Esri)">
+                  <TileLayer
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                    attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                    maxNativeZoom={19}
+                    maxZoom={22}
+                  />
+                </LayersControl.BaseLayer>
+              </LayersControl>
+
+              <Polyline positions={path} color="blue" />
+
+              {telemetry.GLOBAL_POSITION_INT && (
+                <>
+                  <Marker 
+                    position={[telemetry.GLOBAL_POSITION_INT.lat / 10000000, telemetry.GLOBAL_POSITION_INT.lon / 10000000]}
+                    icon={iconType === 'car' 
+                      ? createCarIcon(telemetry.VFR_HUD?.heading || 0)
+                      : createArrowIcon(telemetry.VFR_HUD?.heading || 0)
+                    }
+                  >
+                    <Popup>
+                      Lat: {(telemetry.GLOBAL_POSITION_INT.lat / 10000000).toFixed(6)}<br />
+                      Lon: {(telemetry.GLOBAL_POSITION_INT.lon / 10000000).toFixed(6)}
+                    </Popup>
+                  </Marker>
+                  <MapUpdater center={[telemetry.GLOBAL_POSITION_INT.lat / 10000000, telemetry.GLOBAL_POSITION_INT.lon / 10000000]} />
+                </>
+              )}
+              <LocationMarker />
+           </MapContainer>
+    </div>
+  );
+
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-container" style={{ height: "auto", minHeight: "100vh", overflow: "visible" }}>
       <div className="dashboard-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ margin: 0 }}>🚜 Rover GCS (Advanced)</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button 
-            onClick={onSwitchMode} 
+            onClick={() => setLayoutMode(prev => prev === 'map' ? 'camera' : 'map')} 
             style={{ 
               padding: "5px 10px", 
               cursor: "pointer", 
-              backgroundColor: "#61dafb", 
-              color: "#282c34", 
+              backgroundColor: "#28a745", 
+              color: "white", 
               border: "none", 
               borderRadius: "4px",
               fontWeight: "bold"
             }}
           >
-            Switch to Classic
+            Layout: {layoutMode === 'map' ? 'Map' : 'Camera'}
           </button>
+          <button onClick={onSwitchMode} style={{ padding: "5px 10px", cursor: "pointer", backgroundColor: "#61dafb", color: "#282c34", border: "none", borderRadius: "4px", fontWeight: "bold" }}>Switch to Classic</button>
           <button onClick={handleLogout} style={{ padding: "5px 10px", cursor: "pointer", backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "4px" }}>Logout</button>
         </div>
       </div>
 
-      <div className="dashboard-content">
-        {/* Sidebar: Controls & Status */}
-        <div className="dashboard-sidebar">
-          
-          {/* Connection Status */}
-          <div style={{ 
-            padding: "10px", 
-            backgroundColor: status.includes("Connected") ? "#d4edda" : "#f8d7da",
-            borderRadius: "4px",
-            border: "1px solid #ccc"
-          }}>
-            <div>Connection: <strong>{status}</strong></div>
-            {telemetry.HEARTBEAT && (
-              <div style={{ marginTop: "5px", display: "flex", gap: "10px", fontSize: "0.9em" }}>
-                <div>Mode: <strong>{telemetry.HEARTBEAT.mode_name}</strong></div>
-                <div>State: <strong style={{ color: telemetry.HEARTBEAT.is_armed ? "red" : "green" }}>
-                  {telemetry.HEARTBEAT.is_armed ? "ARMED" : "DISARMED"}
-                </strong></div>
-              </div>
-            )}
-          </div>
-
-          {/* HUD */}
-          <div style={{ border: "1px solid #ccc", padding: "10px", backgroundColor: "#f9f9f9", borderRadius: "4px" }}>
-            {telemetry.VFR_HUD ? (
-              <div style={{ fontSize: "1em", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5px" }}>
-                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {telemetry.VFR_HUD.groundspeed.toFixed(1)} m/s
-                  <span className="optional-unit"> ({(telemetry.VFR_HUD.groundspeed * 3.6).toFixed(1)} km/h)</span>
-                </div>
-                <div><strong>Hdg:</strong> {telemetry.VFR_HUD.heading}°</div>
-                <div style={{ color: "#666" }}>Thr: {telemetry.VFR_HUD.throttle}%</div>
-                <div style={{ color: "#666" }}>Alt: {telemetry.VFR_HUD.alt.toFixed(1)} m</div>
-              </div>
-            ) : (
-              <div>No HUD Data</div>
-            )}
-          </div>
-
-          {/* System Control */}
-          <div style={{ display: "flex", gap: "5px" }}>
-              <select 
-                value={telemetry.HEARTBEAT?.is_armed ? "ARM" : "DISARM"}
-                onChange={(e) => sendCommand(e.target.value)}
-                style={{ 
-                  padding: "8px", 
-                  flex: 1,
-                  backgroundColor: telemetry.HEARTBEAT?.is_armed ? "#d4edda" : "#f8d7da",
-                  fontWeight: "bold",
-                  borderRadius: "4px",
-                  border: "1px solid #ccc"
-                }}
-              >
-                <option value="DISARM">DISARMED</option>
-                <option value="ARM">ARMED</option>
-              </select>
-
-              <select 
-                value={telemetry.HEARTBEAT?.mode_name || "MANUAL"}
-                onChange={(e) => sendCommand('SET_MODE', e.target.value)}
-                style={{ 
-                  padding: "8px", 
-                  flex: 1,
-                  borderRadius: "4px",
-                  border: "1px solid #ccc"
-                }}
-              >
-                <option value="MANUAL">MANUAL</option>
-                <option value="GUIDED">GUIDED</option>
-                <option value="AUTO">AUTO</option>
-                <option value="HOLD">HOLD</option>
-                <option value="RTL">RTL</option>
-                <option value="SMART_RTL">SMART_RTL</option>
-              </select>
-          </div>
-
-          {/* Manual Control */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", border: "1px solid #ccc", padding: "10px", borderRadius: "8px" }}>
-              
-              {/* Control Mode Toggle */}
-              <div style={{ display: "flex", justifyContent: "center", marginBottom: "5px" }}>
-                <button
-                  onClick={() => setControlMode(prev => prev === 'slider' ? 'joystick' : 'slider')}
-                  style={{
-                    padding: "5px 10px",
-                    fontSize: "0.8em",
-                    cursor: "pointer",
-                    backgroundColor: "#007bff",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px"
-                  }}
-                >
-                  Switch to {controlMode === 'slider' ? 'Joystick' : 'Sliders'}
-                </button>
-              </div>
-
-              {/* Settings Row */}
-              <div style={{ display: "flex", gap: "5px" }}>
-                  <select 
-                    value={transmitInterval} 
-                    onChange={(e) => setTransmitInterval(Number(e.target.value))}
-                    style={{ flex: 1, padding: "2px", fontSize: "0.8em" }}
-                  >
-                    <option value="0">Tx: Off</option>
-                    <option value="100">Tx: 0.1s</option>
-                    <option value="500">Tx: 0.5s</option>
-                    <option value="1000">Tx: 1s</option>
-                    <option value="2000">Tx: 2s</option>
-                    <option value="5000">Tx: 5s</option>
-                  </select>
-
-                  <select 
-                    value={throttleRange} 
-                    onChange={(e) => setThrottleRange(Number(e.target.value))}
-                    style={{ flex: 1, padding: "2px", fontSize: "0.8em" }}
-                  >
-                    <option value="250">Rg: 250</option>
-                    <option value="500">Rg: 500</option>
-                    <option value="1000">Rg: 1000</option>
-                  </select>
-              </div>
-
-              {controlMode === 'slider' ? (
-                <>
-                  {/* Throttle Slider */}
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.8em" }}>
-                      Thr: {manualControl.throttle}
-                    </label>
-                    <input 
-                      type="range" 
-                      min={1500 - throttleRange} 
-                      max={1500 + throttleRange} 
-                      step="1"
-                      value={manualControl.throttle} 
-                      onChange={handleThrottleChange}
-                      style={{ width: "100%" }}
-                    />
-                  </div>
-
-                  {/* Steering Slider */}
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.8em" }}>
-                      Str: {manualControl.steer}
-                    </label>
-                    <input 
-                      type="range" 
-                      min="1000" 
-                      max="2000" 
-                      step="1"
-                      value={manualControl.steer} 
-                      onChange={handleSteerChange}
-                      style={{ width: "100%" }}
-                    />
-                  </div>
-                </>
-              ) : (
-                /* Joystick Control */
-                <div style={{ 
-                  display: "flex", 
-                  flexDirection: "column",
-                  justifyContent: "center", 
-                  alignItems: "center",
-                  padding: "5px",
-                  minHeight: "160px",
-                  width: "100%",
-                  position: "relative",
-                  zIndex: 0 // Ensure new stacking context
-                }}>
-                  <Joystick 
-                    size={150} 
-                    sticky={false} 
-                    baseColor="#eee" 
-                    stickColor="#007bff" 
-                    move={handleJoystickMove} 
-                    stop={handleJoystickStop}
-                    controlPlaneShape="square"
-                    baseShape="square"
-                  />
-                  <div style={{ marginTop: "15px", fontSize: "0.9em", fontWeight: "bold", color: "#555" }}>
-                    <div>Thr: {manualControl.throttle}</div>
-                    <div>Str: {manualControl.steer}</div>
-                  </div>
-                </div>
-              )}
-
-              <button 
-                onClick={stopManualControl} 
-                style={{ 
-                  backgroundColor: "#dc3545", 
-                  color: "white", 
-                  border: "none", 
-                  padding: "8px", 
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  borderRadius: "4px",
-                  width: "100%"
-                }}
-              >
-                STOP
-              </button>
-          </div>
-
-        </div>
-
-        {/* Map */}
-        <div className="dashboard-map-container">
-               {/* Icon Toggle */}
-               <div style={{ position: "absolute", top: "10px", left: "50px", zIndex: 1000, backgroundColor: "white", padding: "5px", borderRadius: "4px", boxShadow: "0 1px 5px rgba(0,0,0,0.4)" }}>
-                 <label style={{ marginRight: "10px", cursor: "pointer", fontSize: "0.8em" }}>
-                   <input 
-                     type="radio" 
-                     name="iconType" 
-                     value="arrow" 
-                     checked={iconType === 'arrow'} 
-                     onChange={() => setIconType('arrow')} 
-                   /> Arrow
-                 </label>
-                 <label style={{ cursor: "pointer", fontSize: "0.8em" }}>
-                   <input 
-                     type="radio" 
-                     name="iconType" 
-                     value="car" 
-                     checked={iconType === 'car'} 
-                   onChange={() => setIconType('car')} 
-                   /> Car
-                 </label>
+      <div className="dashboard-content" style={{ display: 'flex', flexDirection: 'row', flex: 1, minHeight: '600px', gap: '10px', padding: '10px' }}>
+        
+        {layoutMode === 'camera' ? (
+           /* Camera Mode: 3 Columns (Sidebar | Camera | Map) */
+           <>
+             <div className="dashboard-sidebar" style={{ width: '360px', flexShrink: 0 }}>
+               {renderSidebarContent()}
+             </div>
+             <div style={{ flex: 2, minWidth: '400px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+               {renderCamera()}
+             </div>
+             {windowWidth > 1000 && (
+               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                 {renderMap()}
                </div>
-
-               <MapContainer 
-                  center={telemetry.GLOBAL_POSITION_INT
-                    ? [telemetry.GLOBAL_POSITION_INT.lat / 10000000, telemetry.GLOBAL_POSITION_INT.lon / 10000000]
-                    : [35.867722, 140.263472]} 
-                  zoom={18} 
-                  maxZoom={22}
-                  style={{ height: "100%", width: "100%" }}
-                  attributionControl={false}
-               >
-                  <LayersControl position="topright">
-                    <LayersControl.BaseLayer name="Standard (OSM)">
-                      <TileLayer
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        maxNativeZoom={19}
-                        maxZoom={22}
-                      />
-                    </LayersControl.BaseLayer>
-                    <LayersControl.BaseLayer checked name="Satellite (Esri)">
-                      <TileLayer
-                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                        attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                        maxNativeZoom={19}
-                        maxZoom={22}
-                      />
-                    </LayersControl.BaseLayer>
-                  </LayersControl>
-
-                  <Polyline positions={path} color="blue" />
-
-                  {telemetry.GLOBAL_POSITION_INT && (
-                    <>
-                      <Marker 
-                        position={[telemetry.GLOBAL_POSITION_INT.lat / 10000000, telemetry.GLOBAL_POSITION_INT.lon / 10000000]}
-                        icon={iconType === 'car' 
-                          ? createCarIcon(telemetry.VFR_HUD?.heading || 0)
-                          : createArrowIcon(telemetry.VFR_HUD?.heading || 0)
-                        }
-                      >
-                        <Popup>
-                          Lat: {(telemetry.GLOBAL_POSITION_INT.lat / 10000000).toFixed(6)}<br />
-                          Lon: {(telemetry.GLOBAL_POSITION_INT.lon / 10000000).toFixed(6)}
-                        </Popup>
-                      </Marker>
-                      <MapUpdater center={[telemetry.GLOBAL_POSITION_INT.lat / 10000000, telemetry.GLOBAL_POSITION_INT.lon / 10000000]} />
-                    </>
-                  )}
-                  <LocationMarker />
-               </MapContainer>
-        </div>
+             )}
+           </>
+        ) : (
+           /* Map Mode: 2 Columns (Sidebar[Camera+Content] | Map) */
+           <>
+             <div className="dashboard-sidebar" style={{ width: '360px', flexShrink: 0 }}>
+               {renderCamera()}
+               {renderSidebarContent()}
+             </div>
+             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+               {renderMap()}
+             </div>
+           </>
+        )}
       </div>
 
       {/* Footer: Telemetry */}
