@@ -1,4 +1,3 @@
-
 # 開発環境、本番環境デプロイメモ
 
 ArduPilot Rover の SITL (Software In The Loop) と `rover-gcs` を組み合わせて開発する際の手順メモです。
@@ -341,4 +340,36 @@ sudo tcpdump -n udp port 14552
 
   - 本番 URL 例: `https://rover.zorosmap.me/`
   - Console ログ例: `Connecting to: wss://rover.zorosmap.me/ws`
+
+## 8. Dockerでの本番デプロイ（WebODM共存環境）
+
+WebODMがポート8000を使用しているため、本番用Docker設定ではポート **8001** を使用するように設定しています。
+Nginxのリバースプロキシを経由してアクセスする構成です。
+
+### 8.1 デプロイ手順
+
+本番サーバー上で以下のコマンドを実行します。
+これにより、フロントエンドのビルドとバックエンドの起動が1つのコンテナで行われます。
+
+```bash
+# 本番用設定でビルド＆起動
+docker-compose -f docker-compose.prod.yml up --build -d
+```
+
+- コンテナ名: `rover-gcs-prod`
+- ポート: `8001` (ホスト側) -> `8000` (コンテナ側)
+
+### 8.2 Caddy設定例 (HTTPS必須)
+
+VDO.Ninja (WebRTC) を使用するため、必ず **HTTPS** でアクセスする必要があります。
+Caddyを使用している場合、`Caddyfile` に以下を追加するだけで、自動的にHTTPS化とリバースプロキシ設定が行われます。
+
+```caddy
+rover.your-domain.com {
+    reverse_proxy 127.0.0.1:8001
+}
+```
+
+- CaddyはWebSocketのUpgradeヘッダーも自動的に処理するため、追加の設定は不要です。
+- 設定変更後、`sudo systemctl reload caddy` (または `caddy reload`) で反映させてください。
 

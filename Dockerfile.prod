@@ -1,0 +1,29 @@
+# ビルドステージ: フロントエンド (React)
+FROM node:22-slim AS build-frontend
+WORKDIR /app/frontend
+
+# 依存関係のインストール
+COPY frontend/package*.json ./
+RUN npm install
+
+# ソースコードのコピーとビルド
+COPY frontend/ .
+RUN npm run build
+
+# 実行ステージ: バックエンド (FastAPI)
+FROM python:3.10-slim
+WORKDIR /app/backend
+
+# バックエンドの依存関係
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# バックエンドのソースコード
+COPY backend/ .
+
+# ビルドしたフロントエンドを配置
+# main.py は "../frontend/dist" を探すので、/app/frontend/dist に配置する
+COPY --from=build-frontend /app/frontend/dist /app/frontend/dist
+
+# 実行 (ポート8000)
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

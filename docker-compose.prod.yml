@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  rover-gcs:
+    # Dockerfile.prod を使ってビルド
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: rover-gcs-prod
+    restart: always
+    ports:
+      - "8001:8000"       # ホスト8001 -> コンテナ8000 (WebODMと競合しないように変更)
+      - "14552:14552/udp" # MAVLink受信用
+    volumes:
+      # ログとミッションデータのみ永続化
+      - ./backend/logs:/app/backend/logs
+      - ./backend/missions:/app/backend/missions

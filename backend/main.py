@@ -1,5 +1,7 @@
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pymavlink import mavutil
 from pydantic import BaseModel
 import asyncio
@@ -42,8 +44,8 @@ async def login(req: LoginRequest):
         return {"status": "ok"}
     return {"status": "error", "message": "Invalid password"}
 
-@app.get("/")
-async def root():
+@app.get("/api/health")
+async def health_check():
     return {"status": "ok", "message": "rover-gcs backend is running"}
 
 @app.websocket("/ws")
@@ -227,3 +229,25 @@ async def goto_position(cmd: GoToCommand):
         return {"status": "success", "target": cmd}
     
     return {"status": "error", "message": "No connection"}
+
+# フロントエンドの静的ファイル配信設定
+# backend/main.py から見て ../frontend/dist が存在する場合のみマウント
+frontend_dist_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "dist")
+
+if os.path.exists(frontend_dist_path):
+    # Assetsなどの静的ファイル
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="assets")
+    # VDO.Ninjaなどのpublicファイル
+    app.mount("/vdo", StaticFiles(directory=os.path.join(frontend_dist_path, "vdo")), name="vdo")
+    
+    # その他のルートは index.html を返す (SPA対応)
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        # ファイルが存在する場合はそれを返す（favicon.icoなど）
+        file_path = os.path.join(frontend_dist_path, full_path)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        # 存在しない場合は index.html を返す
+        return FileResponse(os.path.join(frontend_dist_path, "index.html"))
+else:
+    print(f"Frontend dist not found at {frontend_dist_path}. Running in API-only mode.")
