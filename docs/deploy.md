@@ -4,18 +4,25 @@ ArduPilot Rover の SITL (Software In The Loop) と `rover-gcs` を組み合わ�
 
 ## 目次
 
-- [1. 前提](#1-前提)
-- [2. ローカル開発環境の構築](#2-ローカル開発環境の構築)
-  - [2.1 SITL (Rover) の起動](#21-sitl-rover-の起動)
-  - [2.2 Backend の起動 (Devモード)](#22-backend-の起動-devモード)
-  - [2.3 Frontend の起動 (Devモード)](#23-frontend-の起動-devモード)
-  - [2.4 動作確認](#24-動作確認)
-- [3. 本番環境へのデプロイ (Docker)](#3-本番環境へのデプロイ-docker)
-  - [3.1 構成概要](#31-構成概要)
-  - [3.2 デプロイ手順](#32-デプロイ手順)
-  - [3.3 Webサーバー設定 (HTTPS必須)](#33-webサーバー設定-https必須)
-  - [3.4 VPN経由でのSITL接続](#34-vpn経由でのsitl接続)
-- [4. トラブルシューティング](#4-トラブルシューティング)
+- [開発環境、本番環境デプロイメモ](#開発環境本番環境デプロイメモ)
+  - [目次](#目次)
+  - [1. 前提](#1-前提)
+  - [2. ローカル開発環境の構築](#2-ローカル開発環境の構築)
+    - [2.1 SITL (Rover) の起動](#21-sitl-rover-の起動)
+    - [2.2 Backend の起動 (Devモード)](#22-backend-の起動-devモード)
+    - [2.3 Frontend の起動 (Devモード)](#23-frontend-の起動-devモード)
+    - [2.4 動作確認](#24-動作確認)
+  - [3. 本番環境へのデプロイ (Docker)](#3-本番環境へのデプロイ-docker)
+    - [3.1 構成概要](#31-構成概要)
+    - [3.2 デプロイ手順](#32-デプロイ手順)
+    - [3.3 Webサーバー設定 (HTTPS必須)](#33-webサーバー設定-https必須)
+      - [Caddy の場合 (推奨)](#caddy-の場合-推奨)
+      - [Nginx の場合](#nginx-の場合)
+    - [3.4 VPN経由でのSITL接続](#34-vpn経由でのsitl接続)
+  - [4. トラブルシューティング](#4-トラブルシューティング)
+    - [WebSocketがつながらない](#websocketがつながらない)
+    - [映像 (VDO.Ninja) が映らない](#映像-vdoninja-が映らない)
+    - ["Port is already allocated" エラー](#port-is-already-allocated-エラー)
 
 ## 1. 前提
 
@@ -78,8 +85,10 @@ cd ~/rover-gcs
 git pull
 
 # 2. 既存のコンテナを停止
-# (ポート競合を防ぐため、必ず実行してください)
+# (ポート競合を防ぐため、念のため両方の設定で停止コマンドを実行します)
+# ※ "Resource is still in use" 等の警告が出ても無視して構いません
 docker compose down
+docker compose -f docker-compose.prod.yml down
 
 # 3. 本番用設定でビルド＆起動
 # (docker-compose コマンドがない場合は "docker compose" を使用)
