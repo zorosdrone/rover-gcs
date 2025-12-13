@@ -159,16 +159,22 @@ cd frontend
 npm run dev
 ```
 
-### Docker 本番運用（Caddy 等のリバースプロキシ前提）
+
+### Docker 本番運用（Caddy等のリバースプロキシ前提）
+
+本番運用は `Dockerfile.prod` と `docker-compose.prod.yml` のみを使用します。
+旧 `docker-compose.yml` や `backend/Dockerfile`, `frontend/Dockerfile` は不要です。
 
 ```bash
-docker-compose up -d
+docker compose -f docker-compose.prod.yml up --build -d
 ```
 
 - バックエンド: コンテナ内ポート `8000` をホスト `8001` に公開（`ws://<host>:8001/ws`）
-- フロントエンド: コンテナ内ポート `5173` をホスト `3000` に公開（`http://<host>:3000`）
+- フロントエンド: Reactビルド済み静的ファイルをFastAPIが配信（`http://<host>:8001/`）
 
-本番では Caddy / Nginx などで、`/` をフロントエンド、`/ws` をバックエンドにリバースプロキシする構成を想定しています。
+本番では Caddy / Nginx などで、`/` をFastAPI（API+静的ファイル）にリバースプロキシする構成を想定しています。
+
+**開発は `start_dev.sh` で直接起動するのが推奨です。**
 
 ## 開発用 ArduPilot シミュレーター起動手順
 

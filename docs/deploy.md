@@ -76,6 +76,11 @@ WebODMなどが同居する環境を想定し、ポート **8001** でサービ�
 
 ### 3.2 デプロイ手順
 
+git pull
+docker compose down
+docker compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml up --build -d
+
 本番サーバー上で以下のコマンドを実行します。
 
 ```bash
@@ -84,16 +89,16 @@ cd ~/rover-gcs
 # 1. ソースコードの更新
 git pull
 
-# 2. 既存のコンテナを停止
-# (ポート競合を防ぐため、念のため両方の設定で停止コマンドを実行します)
-# ※ "Resource is still in use" 等の警告が出ても無視して構いません
+# 2. 既存のコンテナを停止（ポート競合防止）
 docker compose down
 docker compose -f docker-compose.prod.yml down
 
 # 3. 本番用設定でビルド＆起動
-# (docker-compose コマンドがない場合は "docker compose" を使用)
 docker compose -f docker-compose.prod.yml up --build -d
 ```
+
+> **旧 `docker-compose.yml` や `backend/Dockerfile`, `frontend/Dockerfile` は不要です。**
+> 運用は `Dockerfile.prod` と `docker-compose.prod.yml` のみでOKです。
 
 ### 3.3 Webサーバー設定 (HTTPS必須)
 
