@@ -237,9 +237,15 @@ frontend_dist_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspat
 if os.path.exists(frontend_dist_path):
     # Assetsなどの静的ファイル
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="assets")
-    # VDO.Ninjaなどのpublicファイル
-    app.mount("/vdo", StaticFiles(directory=os.path.join(frontend_dist_path, "vdo")), name="vdo")
     
+    # VDO.Ninjaなどのpublicファイル (dist直下にコピーされているはず)
+    # Viteのビルド設定によっては public/vdo -> dist/vdo になる
+    vdo_path = os.path.join(frontend_dist_path, "vdo")
+    if os.path.exists(vdo_path):
+        app.mount("/vdo", StaticFiles(directory=vdo_path), name="vdo")
+    else:
+        print(f"Warning: VDO path not found at {vdo_path}")
+
     # その他のルートは index.html を返す (SPA対応)
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
