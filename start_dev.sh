@@ -68,7 +68,7 @@ fi
 echo "=================================================="
 echo "✅ Services started!"
 echo "   - Backend (http://localhost:8000)"
-echo "   - Frontend (http://localhost:5173)"
+echo "   - Frontend (https://localhost:5173)"
 echo ""
 echo "⚠️  Don't forget to run './start_sitl.sh' in another terminal!"
 echo ""
