@@ -93,6 +93,7 @@ const VdoPlayerWithYolo = ({ viewId = "43wygAK" }) => {
     const [isYoloEnabled, setIsYoloEnabled] = useState(false);
     const [status, setStatus] = useState("Initializing...");
     const [debugInfo, setDebugInfo] = useState("");
+    const [closestObject, setClosestObject] = useState(null); // {class, distance}
     
     // Load Model
     useEffect(() => {
@@ -135,17 +136,15 @@ const VdoPlayerWithYolo = ({ viewId = "43wygAK" }) => {
         return () => clearInterval(interval);
     }, []);
 
-    // Detection Loop
+    // Detection Loop (0.5秒ごと)
     useEffect(() => {
         if (!isYoloEnabled || !model || !iframeRef.current) return;
 
-        let animationId;
+        let timeoutId;
         const iframe = iframeRef.current;
-        
+
         const detect = async () => {
             try {
-                // Access video inside iframe
-                // Note: This requires the iframe to be same-origin
                 const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
                 const video = innerDoc.querySelector('video');
 
@@ -155,89 +154,82 @@ const VdoPlayerWithYolo = ({ viewId = "43wygAK" }) => {
                     setDebugInfo("Searching for video element...");
                 }
 
-                if (video && video.readyState >= 2) { // HAVE_CURRENT_DATA or better
-                    // Workaround: Draw video to offscreen canvas to fix cross-frame issue
+                let closest = null;
+                let closestBox = null;
+
+                if (video && video.readyState >= 2) {
                     const offscreen = offscreenCanvasRef.current;
                     offscreen.width = video.videoWidth;
                     offscreen.height = video.videoHeight;
                     const offCtx = offscreen.getContext('2d');
                     offCtx.drawImage(video, 0, 0);
 
-                    // Detect from offscreen canvas
                     const predictions = await model.detect(offscreen);
-                    
+
                     if (predictions.length > 0) {
                         setDebugInfo(`Objects: ${predictions.length}`);
                     }
 
                     const canvas = canvasRef.current;
                     const ctx = canvas.getContext('2d');
-                    
-                    // Match canvas to iframe size (only update if changed to avoid flickering)
+
                     if (canvas.width !== iframe.clientWidth || canvas.height !== iframe.clientHeight) {
                         canvas.width = iframe.clientWidth;
                         canvas.height = iframe.clientHeight;
                     }
-                    
-                    // Clear canvas right before drawing
+
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                    // Draw
+                    // 最も近い物体を探す
                     predictions.forEach(prediction => {
-                        // Calculate scale
+                        const [x, y, w, h] = prediction.bbox;
+                        const realSize = realSizes[prediction.class] || 0.5;
+                        const estimatedDist = (600 * realSize) / w;
+                        if (!closest || estimatedDist < closest.distance) {
+                            closest = {
+                                class: prediction.class,
+                                distance: estimatedDist
+                            };
+                            closestBox = { x, y, w, h };
+                        }
+                    });
+
+                    // 最も近い物体のみラベル描画
+                    if (closest && closestBox) {
                         const scaleX = canvas.width / video.videoWidth;
                         const scaleY = canvas.height / video.videoHeight;
-                        
-                        const [x, y, w, h] = prediction.bbox;
-                        
-                        const drawX = x * scaleX;
-                        const drawY = y * scaleY;
-                        const drawW = w * scaleX;
-                        const drawH = h * scaleY;
+                        const drawX = closestBox.x * scaleX;
+                        const drawY = closestBox.y * scaleY;
+                        const drawW = closestBox.w * scaleX;
+                        const drawH = closestBox.h * scaleY;
 
-                        // Draw Box
+                        // 枠
                         ctx.strokeStyle = '#00FFFF';
                         ctx.lineWidth = 2;
                         ctx.strokeRect(drawX, drawY, drawW, drawH);
-                        
-                        // Label Background
-                        const label = `${prediction.class} ${Math.round(prediction.score*100)}%`;
-                        ctx.font = '16px Arial';
-                        const textWidth = ctx.measureText(label).width;
-                        
-                        ctx.fillStyle = 'rgba(0, 255, 255, 0.2)';
-                        ctx.fillRect(drawX, drawY > 20 ? drawY - 20 : 0, textWidth + 10, 20);
 
-                        // Label Text
-                        ctx.fillStyle = '#00FFFF';
-                        ctx.fillText(label, drawX + 5, drawY > 20 ? drawY - 5 : 15);
-                        
-                        // Distance (Simple estimation)
-                        const realSize = realSizes[prediction.class] || 0.5;
-                        // Focal length approximation needs calibration, using 600 as placeholder
-                        const estimatedDist = (600 * realSize) / w; // using raw width from video
-                        
-                        ctx.fillStyle = 'red';
-                        ctx.font = 'bold 18px Arial';
-                        ctx.fillText(`${estimatedDist.toFixed(1)}m`, drawX, drawY + drawH + 20);
-                    });
+                        // ラベル
+                        const label = `${closest.class} / ${closest.distance.toFixed(1)}m`;
+                        ctx.font = 'bold 20px Arial';
+                        const textWidth = ctx.measureText(label).width;
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                        ctx.fillRect(drawX, drawY > 28 ? drawY - 28 : 0, textWidth + 16, 28);
+                        ctx.fillStyle = '#fff';
+                        ctx.fillText(label, drawX + 8, drawY > 28 ? drawY - 8 : 20);
+                    }
                 }
+                setClosestObject(closest);
             } catch (e) {
-                // console.error("Detection error", e);
-                // Suppress errors during initialization or when video is not ready
                 setDebugInfo(`Error: ${e.message}`);
+                setClosestObject(null);
             }
-            
-            // Throttle to ~10 FPS (100ms) to reduce load and flickering
-            animationId = setTimeout(() => {
-                requestAnimationFrame(detect);
-            }, 100);
+            timeoutId = setTimeout(detect, 500);
         };
 
         detect();
 
         return () => {
-            if (animationId) clearTimeout(animationId);
+            if (timeoutId) clearTimeout(timeoutId);
         };
     }, [isYoloEnabled, model]);
 
@@ -258,7 +250,7 @@ const VdoPlayerWithYolo = ({ viewId = "43wygAK" }) => {
             <iframe 
                 ref={iframeRef}
                 id="rover-frame"
-                src={`/vdo/index.html?view=${viewId}&autoplay=1&playsinline=1`}
+                src={`/vdo/index.html?view=${viewId}&autoplay=1&playsinline=1&vb=800`}
                 title="Rover Camera"
                 style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
                 allow="autoplay; camera; microphone; fullscreen; picture-in-picture; display-capture"
@@ -275,6 +267,27 @@ const VdoPlayerWithYolo = ({ viewId = "43wygAK" }) => {
                     display: isYoloEnabled ? 'block' : 'none'
                 }}
             />
+            {/* 距離表示: 画面下部中央（ラベル簡潔化） */}
+            {isYoloEnabled && closestObject && (
+                <div style={{
+                    position: 'absolute',
+                    bottom: 20,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 200,
+                    background: 'rgba(0,0,0,0.7)',
+                    color: '#fff',
+                    padding: '10px 24px',
+                    borderRadius: '12px',
+                    fontSize: '1.3em',
+                    fontWeight: 'bold',
+                    minWidth: '180px',
+                    textAlign: 'center',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+                }}>
+                    {closestObject.class} / {closestObject.distance.toFixed(1)}m
+                </div>
+            )}
             <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 100, display: 'flex', gap: '5px' }}>
                 <button 
                     onClick={reloadIframe}
@@ -306,24 +319,7 @@ const VdoPlayerWithYolo = ({ viewId = "43wygAK" }) => {
                 >
                     {isYoloEnabled ? "YOLO ON" : "YOLO OFF"}
                 </button>
-                {isYoloEnabled && (
-                    <div style={{ 
-                        color: 'white', 
-                        fontSize: '0.8em', 
-                        marginTop: '5px', 
-                        textAlign: 'right', 
-                        textShadow: '1px 1px 2px black',
-                        backgroundColor: 'rgba(0,0,0,0.5)',
-                        padding: '2px 5px',
-                        borderRadius: '3px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-end'
-                    }}>
-                        <div>{status}</div>
-                        <div style={{ color: '#aaa', fontSize: '0.9em' }}>{debugInfo}</div>
-                    </div>
-                )}
+                {/* YOLOステータス表示は削除（マップモードやYOLO ON/OFF問わず非表示） */}
             </div>
         </div>
     );
