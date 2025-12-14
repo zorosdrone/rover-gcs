@@ -1,4 +1,8 @@
-### 🛠️ Rover開発プロジェクト：システム仕様書 (Ver.0.7)
+> **[Note]**
+> このドキュメントは、開発者や上級ユーザー向けのより詳細な技術仕様を記載しています。
+>一般的な利用方法については、ルートの [README.md](../README.md) を参照してください。
+
+### 🛠️ Rover開発プロジェクト：システム仕様書 (2025.12.14)
 **～ Cloud-Centric & Smartphone Edge AI 構成 ～**
 
 #### 1. システムアーキテクチャ (Architecture)
@@ -9,11 +13,11 @@
     * **OS:** Linux (Ubuntu etc.) - Tailscale 導入必須
     * **Frontend:** React Web App (User Interface)
     * **Backend:** FastAPI + pymavlink (Logic & Control)
-    * **役割:** ユーザー操作の受付、YOLOアラートの受信（予定）、PixhawkへのMAVLinkコマンド生成・送信。
+    * **役割:** ユーザー操作の受付、YOLOアラートの受信、PixhawkへのMAVLinkコマンド生成・送信。
 
 * **Edge Terminal (Camera & AI):** Xiaomi Mi 11 Lite 5G
     * **配置:** ローバー搭載
-    * **役割:** 映像送信 (VDO.Ninja) + YOLO推論 (ブラウザ上) ※将来実装予定
+    * **役割:** 映像送信 (VDO.Ninja - 自己ホスト) および YOLO 推論 (ブラウザ上) と距離計測。
 
 * **Control Bridge:** Raspberry Pi Zero 2 W
     * **OS:** Rpanion (ArduPilot用管理OS)
@@ -22,12 +26,13 @@
 #### 2. ネットワーク・通信フロー (Network Flow)
 サーバーとローバーは Tailscale (VPN) で接続され、あたかも同一LAN内にいるかのように通信する。
 
-* **映像 & AIデータ (将来実装予定):**
+* **映像 & AIデータ:**
     * スマホ (Sender) $\rightarrow$ [VDO.Ninja P2P] $\rightarrow$ Cloud Frontend (Receiver)
+    * スマホ (Sender) $\rightarrow$ [VDO.Ninja Data Channel] $\rightarrow$ Cloud Frontend (Object Detection & Distance Data)
     * ※遅延回避のため、映像はサーバーを経由せずブラウザ間(P2P)で直接やり取りする。
 
 * **操縦コマンド & 安全停止フロー:**
-    1.  **AI検知:** スマホ(TF.js)が人物検知 $\rightarrow$ VDO.Ninja Data Channelで送信（予定）
+    1.  **AI検知:** スマホ(TF.js)が人物検知 $\rightarrow$ VDO.Ninja Data Channelで送信
     2.  **受信:** Cloud Frontend (React) が受信
     3.  **命令:** Cloud Frontend $\rightarrow$ [WebSocket: COMMAND] $\rightarrow$ Cloud Backend (FastAPI)
     4.  **制御:** Cloud Backend $\rightarrow$ [UDP over Tailscale] $\rightarrow$ Pi Zero 2 W $\rightarrow$ [Serial] $\rightarrow$ Pixhawk (HOLDモードへ)
@@ -69,9 +74,12 @@
     * **モバイル最適化:**
         * スマホ横持ち (Landscape) 時に操作パネルと地図を左右分割表示すること。
         * `dvh` 単位を使用してビューポートの高さを適切に管理すること。
-    * **VDO.Ninja連携 (将来実装予定):**
+    * **Advanced Mode 機能:**
+        * スマートフォンからのリアルタイム映像表示。
+        * 受信した映像に対する YOLO 物体検知結果の表示。
+        * 物体までの距離情報の表示。
+* **VDO.Ninja連携 (自己ホスト):**
         * VDO.Ninja `iframe` APIを使用。
-        * メッセージイベントリスナー (`window.addEventListener`) を実装し、スマホからの `alert` データを受信したら、即座に Backend へコマンドを送信する実装とする。
 
 **B. Pi Zero 2 W (Rpanion 設定のみ)**
 * **Rpanion (mavlink-router) 設定:**
@@ -83,6 +91,11 @@
 **C. Smartphone (Sender Page)**
 * **推論頻度の調整:**
     * 発熱対策のため、推論 (`model.execute`) は毎フレーム行わず、**500msに1回程度** に間引く実装を推奨。
+* **YOLO と距離計測:**
+    * カメラ映像に対して YOLO 推論を実行し、検出された物体の種類と画面上の位置、および距離センサー（LiDAR/Sonar）からの情報と連携して物体までの距離を算出・表示すること。
+* **配信アクセスURLのフォーマット:**
+    * VDO.Ninja (自己ホスト) へは、以下のURLフォーマットでアクセスし、配信を開始すること。
+    * `https://[VDO.NinjaホストのIPまたはドメイン]/vdo/index.html?push=[PUSH_ID]`
 
 #### 5. ArduPilot (Pixhawk) 重要パラメータ設定
 

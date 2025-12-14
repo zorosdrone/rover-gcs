@@ -1,16 +1,34 @@
-# React + Vite
+# rover-gcs-frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+このディレクトリには、`rover-gcs` プロジェクトのフロントエンド部分が含まれています。
+React と Vite を使用して構築されており、バックエンドと WebSocket で通信し、リアルタイムのテレメトリ表示と機体制御を提供します。
 
-Currently, two official plugins are available:
+## 開発
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+フロントエンドをローカルで開発・実行する手順は以下の通りです。
 
-## React Compiler
+1. **依存関係のインストール**
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+   ```bash
+   npm install
+   ```
 
-## Expanding the ESLint configuration
+2. **開発サーバーの起動**
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+   ```bash
+   npm run dev
+   ```
+
+   これにより、Vite 開発サーバーが起動し、通常は `http://localhost:5173` でアプリケーションにアクセスできます。
+
+## 主なコンポーネントと構造
+
+- **`src/`**: ソースコードのルートディレクトリ
+  - **`main.jsx`**: アプリケーションのエントリーポイント
+  - **`App.jsx`**: メインのアプリケーションコンポーネント。ここでレイアウトや主要なコンポーネントが組み合わされます。
+  - **`ClassicMode.jsx`**: テレメトリ、マップ、およびコントロールパネルを含むメインのダッシュボードビューです。
+  - **`AdvancedMode.jsx`**: ローバー搭載のスマートフォンからの映像を表示し、リアルタイムで物体検知（YOLO）と距離表示を行うコンポーネントです。
+
+  - **`VdoPlayerWithYolo.jsx`**: VDO.Ninja と YOLO を統合するためのコンポーネントです。
+
+より詳細なプロジェクト全体の情報については、リポジトリのルートにある `README.md` を参照してください。

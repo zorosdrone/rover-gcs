@@ -45,6 +45,9 @@ ArduPilot Rover 向けの多機能な Ground Control Station (GCS) Web アプリ
     - 縦持ち時は操作パネルを最上部に配置し、重要なログのみを表示
     - `dvh` (Dynamic Viewport Height) 対応でブラウザのメニューバーによる表示崩れを防止
   - 必要な情報をサイドバーに集約し、地図領域を最大化
+- **高度な視覚認識機能 (Advanced Mode)**:
+  - ローバー搭載のスマートフォンからの映像をリアルタイムで表示
+  - 映像からの物体検知 (YOLO) と距離表示
 
 ## 操作方法
 
@@ -218,8 +221,6 @@ sim_vehicle.py -v Rover -f rover-skid --console --map --out=udp:127.0.0.1:14552
 バックエンドはデフォルトで `udp:0.0.0.0:14552` をリッスンします。
 SITL 以外の実機や他のシミュレータと接続する場合は、`backend/main.py` の `CONNECTION_STRING` を環境に合わせて変更してください。
 
-より詳しい開発運用手順は `docs/sitl.md` を参照してください。
-
 ## ログ / 設定ファイル
 
 - `backend/logs/` : バックエンドのログ (`LASTLOG.TXT` など)
@@ -231,7 +232,7 @@ SITL 以外の実機や他のシミュレータと接続する場合は、`backe
 
 ![System Architecture](docs/images/architecture.png)
 
-より詳細な構成やデータフローについては `docs/architecture.md` を参照してください。
+より詳細な構成やデータフローについては `docs/architecture.md` を、ハードウェアやArduPilotパラメータ設定などの詳細な仕様については `docs/SystemSpecifications.md` を参照してください。
 
 ## ライセンス
 
