@@ -155,6 +155,10 @@ function ClassicMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  // TX送信間隔のデフォルト値をoff（0）に
+  useEffect(() => {
+    if (typeof setTransmitInterval === 'function') setTransmitInterval(0);
+  }, [setTransmitInterval]);
 
   useEffect(() => {
     const auth = localStorage.getItem("isAuthenticated");
