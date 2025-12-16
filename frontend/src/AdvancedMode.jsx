@@ -548,6 +548,15 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
     </div>
   );
 
+  // 距離データのフォーマット用ヘルパー関数
+  const formatDistance = (cm) => {
+    if (cm === undefined || cm === null) return 'N/A';
+    if (cm >= 100) {
+      return `${(cm / 100).toFixed(2)} m`;
+    }
+    return `${cm} cm`;
+  };
+
   const renderSidebarContent = () => (
     <>
       {/* Connection Status */}
@@ -568,6 +577,7 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
         )}
       </div>
 
+
       {/* HUD */}
       <div style={{ border: "1px solid #ccc", padding: "10px", backgroundColor: "#f9f9f9", borderRadius: "4px" }}>
         {telemetry.VFR_HUD ? (
@@ -583,6 +593,11 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
         ) : (
           <div>No HUD Data</div>
         )}
+        {/* 距離センサー表示 */}
+        <div style={{ marginTop: "10px", padding: "6px", background: "#eef", borderRadius: "4px", textAlign: "center" }}>
+          <span style={{ fontWeight: "bold", marginRight: "8px" }}>Sonar Range:</span>
+          <span className="highlight-value">{formatDistance(telemetry.TELEMETRY?.sonar_range)}</span>
+        </div>
       </div>
 
       {/* System Control */}

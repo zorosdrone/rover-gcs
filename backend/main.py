@@ -70,6 +70,9 @@ async def websocket_endpoint(websocket: WebSocket):
             print("[backend] Using existing MAVLink connection")
 
         async def mavlink_to_frontend():
+            telemetry_data = {}
+            import math, time
+            last_send_time = time.time()
             while True:
                 # メッセージを受信 (ブロックせずに取得)
                 msg = mav.recv_match(blocking=False)
@@ -77,22 +80,27 @@ async def websocket_endpoint(websocket: WebSocket):
                 if msg:
                     msg_type = msg.get_type()
 
-                    # 特定のメッセージだけフロントへ送る（例: 姿勢と位置）
-                    if msg_type in ['ATTITUDE', 'GLOBAL_POSITION_INT', 'HEARTBEAT', 'VFR_HUD', 'SYS_STATUS', 'STATUSTEXT']:
-                        data = msg.to_dict()
+                    if msg_type == 'ATTITUDE':
+                        telemetry_data['roll'] = math.degrees(msg.roll)
+                        telemetry_data['pitch'] = math.degrees(msg.pitch)
+                        telemetry_data['yaw'] = math.degrees(msg.yaw)
+                    elif msg_type == 'SYS_STATUS':
+                        telemetry_data['voltage_battery'] = msg.voltage_battery / 1000.0
+                        telemetry_data['current_battery'] = msg.current_battery / 100.0
+                        telemetry_data['battery_remaining'] = msg.battery_remaining
+                    elif msg_type == 'DISTANCE_SENSOR':
+                        # current_distance は cm 単位
+                        telemetry_data['sonar_range'] = msg.current_distance
 
-                        # 追加情報: モード名やArmed状態
-                        if msg_type == 'HEARTBEAT':
-                            data['mode_name'] = mav.flightmode
-                            data['is_armed'] = mav.motors_armed()
+                # 0.1秒ごとにフロントエンドへ送信
+                current_time = time.time()
+                if current_time - last_send_time > 0.1:
+                    await websocket.send_text(json.dumps({
+                        "type": "TELEMETRY",
+                        "data": telemetry_data
+                    }))
+                    last_send_time = current_time
 
-                        # JSONにしてReactへ送信
-                        await websocket.send_text(json.dumps({
-                            "type": msg_type,
-                            "data": data
-                        }))
-
-                # CPU負荷を下げるため少し待機
                 await asyncio.sleep(0.01)
 
         async def commands_from_frontend():
