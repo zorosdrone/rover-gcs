@@ -48,6 +48,7 @@ ArduPilot Rover 向けの多機能な Ground Control Station (GCS) Web アプリ
 - **高度な視覚認識機能 (Advanced Mode)**:
   - ローバー搭載のスマートフォンからの映像をリアルタイムで表示
   - 映像からの物体検知 (YOLO) と距離表示
+  - **Auto-stop (安全停止)**: フロントエンドのサイドバーに距離センサー（Sonar/LiDAR）を監視して自動停止を行う `Auto-stop` 閾値セレクタを追加しました。選択肢は `Off`, `40 cm`, `60 cm` (デフォルト), `80 cm`, `1.00 m` です。閾値以下になった場合にフロントエンドから自動的に `STOP` コマンドを送信します（後退中は動作を抑止）。
 
 ## 操作方法
 
@@ -66,6 +67,7 @@ ArduPilot Rover 向けの多機能な Ground Control Station (GCS) Web アプリ
 - **設定**:
   - **Tx Interval**: マニュアル制御信号の定期送信間隔 (Off, 1s, 2s, 5s, 10s)。ArduPilotのGCSフェイルセーフ設定に合わせて調整してください。
   - **Throttle Range**: スロットル操作の感度/最大幅を設定します (Safe: 150 ~ Max: 1000)。
+  - **Auto-stop 閾値**: Advanced モードのサイドバーに `Auto-stop` ドロップダウンがあり、Sonar/LiDAR の距離が選択した閾値以下になったときに自動で `STOP` を送信します。`Off` を選ぶと無効化されます。デフォルトは `60 cm` です。
 
 ### Guided Mode (地図クリック移動)
 

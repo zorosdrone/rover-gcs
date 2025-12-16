@@ -12,6 +12,7 @@ ArduPilot Rover の SITL (Software In The Loop) と `rover-gcs` を組み合わ�
     - [2.2 Backend の起動 (Devモード)](#22-backend-の起動-devモード)
     - [2.3 Frontend の起動 (Devモード)](#23-frontend-の起動-devモード)
     - [2.4 動作確認](#24-動作確認)
+      - [UI: Auto-stop 閾値セレクタ](#ui-auto-stop-閾値セレクタ)
   - [3. 本番環境へのデプロイ (Docker)](#3-本番環境へのデプロイ-docker)
     - [3.1 構成概要](#31-構成概要)
     - [3.2 デプロイ手順](#32-デプロイ手順)
@@ -64,6 +65,15 @@ npm run dev
 ### 2.4 動作確認
 - **Backendログ**: `[backend] MAVLink heartbeat received` が表示されること。
 - **Frontend画面**: Statusが `Connected to Backend` になり、地図上のローバーが動くこと。
+
+#### UI: Auto-stop 閾値セレクタ
+
+- フロントエンドのサイドバーに `Auto-stop` ドロップダウンが追加されています。表示位置は `Sonar Range` と同じ行です。
+- 選択可能な値: `Off`, `40 cm`, `60 cm` (デフォルト), `80 cm`, `1.00 m`。
+- 動作: 選択した閾値（cm）以下にソナー距離が下がったときに自動的に `STOP` コマンドを送信します。`Off` を選ぶと自動停止は無効になります。
+- 注意: 自動停止はバック（後退）操作中は発動しません。送信機(RC)やフロントエンドの操作で後退中かどうかを判定してスキップします。
+- テスト手順: サイドバーで閾値を変更した後、SITL または実機でソナーが該当距離まで近づいたときにバックエンドログに `COMMAND received: {"command": "STOP"}` のような記録が出ることを確認してください。またフロントエンドにトースト通知が表示されます。
+
 
 ## 3. 本番環境へのデプロイ (Docker)
 

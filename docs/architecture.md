@@ -122,6 +122,17 @@ sequenceDiagram
             BE->>Rover: RC_CHANNELS_OVERRIDE (Steer, Throttle...)
         end
     end
+
+### 追加: 距離センサーと自動停止のフロー
+
+フロントエンドでの自動停止は次のような流れで動作します（簡易説明）:
+
+1. Pixhawk / Rover が `DISTANCE_SENSOR` (LiDAR / Sonar) を出力
+2. Backend (`backend/main.py`) が `DISTANCE_SENSOR` を受信し、フロントエンド向けに `TELEMETRY` メッセージとして `{ type: "TELEMETRY", data: { sonar_range: <cm> } }` を送信
+3. Frontend (React) が `telemetry.TELEMETRY.sonar_range` を監視し、サイドバーの `Auto-stop` で選択された閾値以下になった場合に自動で `COMMAND: STOP` を送信
+4. 自動停止は「後退中 (バック)」の判定がある場合は作動をスキップし、送信機(RC)の操作は優先して即座に復帰できるよう挙動制御を行います（詳細は SystemSpecifications を参照）
+
+この追記はアーキテクチャ図そのものは変えず、データフローの補足説明として追加しています。
 ```
 
 ### 内部処理フロー (backend/main.py)

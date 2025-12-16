@@ -37,6 +37,18 @@
     3.  **命令:** Cloud Frontend $\rightarrow$ [WebSocket: COMMAND] $\rightarrow$ Cloud Backend (FastAPI)
     4.  **制御:** Cloud Backend $\rightarrow$ [UDP over Tailscale] $\rightarrow$ Pi Zero 2 W $\rightarrow$ [Serial] $\rightarrow$ Pixhawk (HOLDモードへ)
 
+#### 自動停止機能 (Auto-stop)
+
+本プロジェクトでは、フロントエンド側で距離センサー値（Sonar / LiDAR）を監視し、安全のために自動停止を行う仕組みを導入しています。
+
+- **閾値オプション**: サイドバーの `Auto-stop` で次を選択できます: `Off`, `40 cm`, `60 cm` (デフォルト), `80 cm`, `1.00 m`。
+- **動作**: フロントエンドはバックエンドから受け取る `TELEMETRY.sonar_range`（cm）を監視し、選択した閾値以下になった場合に `COMMAND: STOP` をバックエンドへ送信します。
+- **バック制御との連携**: 自動停止はフロントエンドまたは送信機（RC）による「後退中（バック）」の判定がある場合は無視されます（誤停止防止）。
+- **復帰/優先順位**: 送信機入力が確認された場合は物理送信機が優先され、フロントエンドは必要に応じてバックエンドへ `RELEASE_OVERRIDE` を送り、制御を即座に送信機へ戻します。
+- **テスト**: 閾値を設定してからソナーを閾値以内に近づけ、フロントエンドのトースト表示とバックエンドログ (`COMMAND received: {"command": "STOP"}`) を確認してください。
+
+> 注意: センサーの設置位置・車速によって安全停止の適正閾値は変わるため、実運用前に十分なフィールドテストを行ってください。
+
 #### 3. ハードウェア構成・配線 (Hardware & Wiring)
 * **電源系統 (Power) - 2系統独立:**
     * **駆動系:** LiPo 11.1V $\rightarrow$ Power Module $\rightarrow$ Pixhawk & ESC
