@@ -768,7 +768,7 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
   );
 
   const renderMap = () => (
-    <div className="dashboard-map-container">
+    <div className="dashboard-map-container" style={{ height: '100%', minHeight: '240px', marginBottom: '10px', display: 'flex', flexDirection: 'column' }}>
            {/* Icon Toggle */}
            <div style={{ position: "absolute", top: "10px", left: "50px", zIndex: 1000, backgroundColor: "white", padding: "5px", borderRadius: "4px", boxShadow: "0 1px 5px rgba(0,0,0,0.4)" }}>
              <label style={{ marginRight: "10px", cursor: "pointer", fontSize: "0.8em" }}>
@@ -868,7 +868,6 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
       </div>
 
       <div className="dashboard-content" style={{ display: 'flex', flexDirection: 'row', flex: 1, minHeight: '600px', gap: '10px', padding: '10px' }}>
-        
         {layoutMode === 'camera' ? (
            /* Camera Mode: 3 Columns (Sidebar | Camera | Map) */
            <>
@@ -885,48 +884,47 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
              )}
            </>
         ) : (
-           /* Map Mode: 2 Columns (Sidebar[Camera+Content] | Map) */
+           /* Map Mode: 左:操作パネル 右:Map (上) + メッセージ等 (下) */
            <>
-             <div className="dashboard-sidebar" style={{ width: '360px', flexShrink: 0 }}>
+             <div className="dashboard-sidebar" style={{ width: '360px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
                {renderCamera()}
                {renderSidebarContent()}
              </div>
-             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-               {renderMap()}
+             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px', height: 'calc(100vh - 140px)' }}>
+               {/* Map: 上部、可変で残り高さを占有 */}
+               <div style={{ flex: '1 1 auto', minHeight: '240px', minWidth: 0 }}>{renderMap()}</div>
+
+               {/* Telemetry: 下部、固定高さでスクロール可能 */}
+               <div className="telemetry-container" style={{ display: 'flex', gap: '12px', background: '#fff', border: '1px solid #ccc', borderRadius: '8px', padding: '10px', height: '180px', overflow: 'auto', boxSizing: 'border-box' }}>
+                 <div className="telemetry-item messages" style={{ minWidth: '180px', flex: '1 1 220px' }}>
+                   <strong>Messages</strong>
+                   {statusMessages.length === 0 && <div>No messages</div>}
+                   {statusMessages.map(msg => (
+                     <div key={msg.id} style={{ borderBottom: "1px solid #eee" }}>
+                       <span style={{ color: "#888" }}>{msg.time}</span> {msg.text}
+                     </div>
+                   ))}
+                 </div>
+                 <div className="telemetry-item status" style={{ minWidth: '120px', flex: '0 0 160px' }}>
+                   <strong>Status</strong>
+                   <pre style={{ overflowX: "auto", margin: 0 }}>
+                     Bat: {telemetry.SYS_STATUS ? `${(telemetry.SYS_STATUS.voltage_battery/1000).toFixed(1)}V` : 'N/A'}{'\n'}
+                     Cur: {telemetry.SYS_STATUS ? `${(telemetry.SYS_STATUS.current_battery/100).toFixed(1)}A` : 'N/A'}{'\n'}
+                     Load: {telemetry.SYS_STATUS ? `${telemetry.SYS_STATUS.load/10}%` : 'N/A'}
+                   </pre>
+                 </div>
+                 <div className="telemetry-item position" style={{ minWidth: '120px', flex: '0 0 180px' }}>
+                   <strong>Position</strong>
+                   <pre style={{ overflowX: "auto", margin: 0 }}>{JSON.stringify(telemetry.GLOBAL_POSITION_INT, null, 2)}</pre>
+                 </div>
+                 <div className="telemetry-item heartbeat" style={{ minWidth: '120px', flex: '0 0 180px' }}>
+                   <strong>Heartbeat</strong>
+                   <pre style={{ overflowX: "auto", margin: 0 }}>{JSON.stringify(telemetry.HEARTBEAT, null, 2)}</pre>
+                 </div>
+               </div>
              </div>
            </>
         )}
-      </div>
-
-      {/* Footer: Telemetry */}
-      <div className="dashboard-footer">
-          <div className="telemetry-container">
-            <div className="telemetry-item messages">
-              <strong>Messages</strong>
-              {statusMessages.length === 0 && <div>No messages</div>}
-              {statusMessages.map(msg => (
-                <div key={msg.id} style={{ borderBottom: "1px solid #eee" }}>
-                  <span style={{ color: "#888" }}>{msg.time}</span> {msg.text}
-                </div>
-              ))}
-            </div>
-            <div className="telemetry-item status">
-              <strong>Status</strong>
-              <pre style={{ overflowX: "auto", margin: 0 }}>
-                Bat: {telemetry.SYS_STATUS ? `${(telemetry.SYS_STATUS.voltage_battery/1000).toFixed(1)}V` : 'N/A'}{'\n'}
-                Cur: {telemetry.SYS_STATUS ? `${(telemetry.SYS_STATUS.current_battery/100).toFixed(1)}A` : 'N/A'}{'\n'}
-                Load: {telemetry.SYS_STATUS ? `${telemetry.SYS_STATUS.load/10}%` : 'N/A'}
-              </pre>
-            </div>
-            <div className="telemetry-item position">
-              <strong>Position</strong>
-              <pre style={{ overflowX: "auto", margin: 0 }}>{JSON.stringify(telemetry.GLOBAL_POSITION_INT, null, 2)}</pre>
-            </div>
-            <div className="telemetry-item heartbeat">
-              <strong>Heartbeat</strong>
-              <pre style={{ overflowX: "auto", margin: 0 }}>{JSON.stringify(telemetry.HEARTBEAT, null, 2)}</pre>
-            </div>
-          </div>
       </div>
     </div>
   )
