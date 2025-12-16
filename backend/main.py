@@ -77,7 +77,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 if msg:
                     msg_type = msg.get_type()
                     # 個別メッセージをそのまま送信
-                    if msg_type in ['ATTITUDE', 'GLOBAL_POSITION_INT', 'HEARTBEAT', 'VFR_HUD', 'SYS_STATUS', 'STATUSTEXT']:
+                    if msg_type in ['ATTITUDE', 'GLOBAL_POSITION_INT', 'HEARTBEAT', 'VFR_HUD', 'SYS_STATUS', 'STATUSTEXT', 'RC_CHANNELS', 'RC_CHANNELS_RAW']:
                         data = msg.to_dict()
                         if msg_type == 'HEARTBEAT':
                             data['mode_name'] = mav.flightmode

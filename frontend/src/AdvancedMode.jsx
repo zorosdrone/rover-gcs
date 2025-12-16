@@ -206,8 +206,13 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
   const [path, setPath] = useState([]) // 軌跡データ
   const [iconType, setIconType] = useState('arrow') // 'arrow' or 'car'
   const [manualControl, setManualControl] = useState({ throttle: 1500, steer: 1500 })
+  // 自動STOPのトースト通知
+  const [autoStopToast, setAutoStopToast] = useState({ visible: false, message: '' })
+  const toastTimeoutRef = useRef(null)
   // transmitInterval is now passed via props
   const [throttleRange, setThrottleRange] = useState(250) // Throttle range (+/-)
+  // Auto-stop threshold in cm. 0 = off
+  const [stopThreshold, setStopThreshold] = useState(60)
   const [statusMessages, setStatusMessages] = useState([]) // MAVLink messages log
   const [controlMode, setControlMode] = useState('slider') // 'slider' or 'joystick'
   const [layoutMode, setLayoutMode] = useState('map') // 'map' or 'camera'
@@ -279,6 +284,24 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
         }
         return newState
       })
+      
+      // もし送信機のRCチャネルデータが来たら、自動停止によるweb側抑制を解除する
+      if (message.type === 'RC_CHANNELS' || message.type === 'RC_CHANNELS_RAW') {
+        try {
+          const rc = message.data
+          // 試しにチャネル3/chan3/chan3_rawなどを探す
+          const ch3 = rc.chan3_raw ?? rc.chan3 ?? rc.channels?.[2] ?? rc.chan3_raw
+          const val = Number(ch3 ?? NaN)
+          if (!Number.isNaN(val)) {
+            // 中立から外れている（送信機入力が有効）なら抑制を解除
+            if (val < 1450 || val > 1550) {
+              suppressWebOverrideRef.current = 0
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
     }
 
     ws.onclose = () => {
@@ -417,6 +440,13 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
   }
 
   const sendManualControl = (throttle, steer) => {
+    const now = Date.now()
+    // Suppress sending overrides for a short window after auto-stop to allow RC transmitter to take control
+    if (suppressWebOverrideRef.current && now < suppressWebOverrideRef.current) {
+      // do not send override
+      return
+    }
+
     const ws = wsRef.current
     if (!ws || ws.readyState !== WebSocket.OPEN) return
 
@@ -427,6 +457,72 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
     }
     ws.send(JSON.stringify(payload))
   }
+
+  // After auto-stop, temporarily avoid sending web RC overrides so physical transmitter can regain control
+  const suppressWebOverrideRef = useRef(0)
+
+  // 自動STOP送信: 距離が閾値以下ならSTOPを送る。ただしバック中（throttle < 1500）は送らない。
+  const stopCooldownRef = useRef(0)
+  useEffect(() => {
+    const range = telemetry?.TELEMETRY?.sonar_range
+    if (range === undefined || range === null) return
+    const rangeCm = Number(range)
+    if (Number.isNaN(rangeCm)) return
+    // 判定: (A) フロントエンドからの操作で後退中か (B) 送信機(RC)が後退を指示しているか
+    const isBackwardLocal = manualControlRef.current && (manualControlRef.current.throttle < 1500)
+    // RC_CHANNELS / RC_CHANNELS_RAW に throttle(多くの機体でチャネル3)が入る場合を想定
+    const rc = telemetry?.RC_CHANNELS || telemetry?.RC_CHANNELS_RAW
+    let isBackwardRC = false
+    if (rc) {
+      // try common field names
+      const ch3 = rc.chan3_raw ?? rc.chan3_raw ?? rc.chan3 ?? rc.chan3_raw
+      const raw = rc.chan3_raw ?? rc.chan3 ?? rc.chan3_raw
+      const val = Number(ch3 ?? raw ?? NaN)
+      if (!Number.isNaN(val)) {
+        // MAVLink RC uses PWM ~1000-2000, neutral ~1500
+        isBackwardRC = val < 1500
+      }
+    }
+
+    const isBackward = isBackwardLocal || isBackwardRC
+
+    // If user disabled auto-stop, do nothing
+    if (stopThreshold <= 0) return
+
+    if (rangeCm <= stopThreshold && !isBackward) {
+      const now = Date.now()
+      if (now - stopCooldownRef.current > 2000) {
+        try {
+          sendCommand('STOP')
+          // UI通知: 自動STOP発動をステータスメッセージに追加
+          const newMsg = {
+            id: Date.now() + Math.random(),
+            text: `AUTO STOP triggered (sonar ${rangeCm} cm)`,
+            severity: 'warning',
+            time: new Date().toLocaleTimeString()
+          }
+          setStatusMessages(prev => [newMsg, ...prev].slice(0, 20))
+          // トースト表示
+          if (toastTimeoutRef.current) {
+            clearTimeout(toastTimeoutRef.current)
+            toastTimeoutRef.current = null
+          }
+          setAutoStopToast({ visible: true, message: `AUTO STOP triggered (sonar ${rangeCm} cm)` })
+          toastTimeoutRef.current = setTimeout(() => {
+            setAutoStopToast({ visible: false, message: '' })
+            toastTimeoutRef.current = null
+          }, 4000)
+          // Suppress web RC overrides briefly so physical transmitter can take control
+          // Short duration (200ms) so transmitter regains control quickly
+          suppressWebOverrideRef.current = Date.now() + 200
+        } catch (e) {
+          console.warn('Failed to send STOP command automatically:', e)
+        }
+        stopCooldownRef.current = now
+      }
+    }
+  }, [telemetry?.TELEMETRY?.sonar_range])
+
 
   const handleThrottleChange = (e) => {
     const val = parseInt(e.target.value)
@@ -593,10 +689,27 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
         ) : (
           <div>No HUD Data</div>
         )}
-        {/* 距離センサー表示 */}
-        <div style={{ marginTop: "10px", padding: "6px", background: "#eef", borderRadius: "4px", textAlign: "center" }}>
-          <span style={{ fontWeight: "bold", marginRight: "8px" }}>Sonar Range:</span>
-          <span className="highlight-value">{formatDistance(telemetry.TELEMETRY?.sonar_range)}</span>
+        {/* Sonar Range と Auto-stop を同一行に配置 */}
+        <div style={{ marginTop: "10px", padding: "6px", background: "#eef", borderRadius: "4px", display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontWeight: "bold" }}>Sonar Range:</span>
+            <span className="highlight-value">{formatDistance(telemetry.TELEMETRY?.sonar_range)}</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label style={{ fontWeight: 'bold' }}>Auto-stop:</label>
+            <select
+              value={stopThreshold}
+              onChange={(e) => setStopThreshold(Number(e.target.value))}
+              style={{ padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
+            >
+              <option value={0}>Off</option>
+              <option value={40}>40 cm</option>
+              <option value={60}>60 cm</option>
+              <option value={80}>80 cm</option>
+              <option value={100}>1.00 m</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -866,6 +979,28 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
           <button onClick={handleLogout} style={{ padding: "5px 10px", cursor: "pointer", backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "4px" }}>Logout</button>
         </div>
       </div>
+      {/* Auto-stop toast notification */}
+      {autoStopToast.visible && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          style={{
+            position: 'fixed',
+            top: 70,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'rgba(220,53,69,0.95)',
+            color: 'white',
+            padding: '10px 16px',
+            borderRadius: '6px',
+            zIndex: 4000,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
+          }}
+        >
+          <strong style={{ marginRight: 8 }}>AUTO STOP</strong>
+          <span>{autoStopToast.message}</span>
+        </div>
+      )}
 
       <div className="dashboard-content" style={{ display: 'flex', flexDirection: 'row', flex: 1, minHeight: '600px', gap: '10px', padding: '10px' }}>
         {layoutMode === 'camera' ? (
