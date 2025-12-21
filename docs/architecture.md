@@ -4,53 +4,49 @@
 
 ```mermaid
 graph TD
-    %% クラス定義（色分け）
+    %% Class definitions (simplified for renderer compatibility)
     classDef hardware fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
     classDef software fill:#fff9c4,stroke:#fbc02d,stroke-width:1px;
-    classDef network fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
 
-    %% 1. 現場 (Rover)
-    subgraph Rover_System [🚜 Rover / 現場]
+    %% 1. Rover (Field)
+    subgraph Rover_System [Rover]
         direction TB
         Pixhawk[Pixhawk Pro]
-        PiZero[Pi Zero 2W<br>Rpanion]
-        
+        PiZero[Pi Zero 2W Rpanion]
         Pixhawk -->|Serial| PiZero
     end
 
-    %% 2. クラウド (Server)
-    subgraph Cloud_Server [☁️ 公開サーバー]
+    %% 2. Cloud Server
+    subgraph Cloud_Server [Cloud Server]
         direction TB
         Docker[Docker Container]
-        Backend_Prod[Backend<br>FastAPI]
-        Frontend_Prod[Frontend<br>React]
-        
+        Backend_Prod[Backend - FastAPI]
+        Frontend_Prod[Frontend - React]
         Docker --> Backend_Prod
         Backend_Prod <--> Frontend_Prod
     end
 
-    %% 3. 自宅 (Dev PC)
-    subgraph Home_PC [💻 開発PC / 自宅]
+    %% 3. Home Dev PC
+    subgraph Home_PC [Dev PC]
         direction TB
         WSL[WSL2 Ubuntu]
         SITL[SITL Sim]
-        Backend_Dev[Backend<br>Dev]
-        Frontend_Dev[Frontend<br>Dev]
-        
+        Backend_Dev[Backend - FastAPI]
+        Frontend_Dev[Frontend - React]
         WSL --- SITL
         SITL -->|UDP 14552| Backend_Dev
         Backend_Dev <--> Frontend_Dev
     end
 
-    %% 通信 (Tailscale VPN)
-    PiZero -.->|Tailscale VPN<br>① 本番運用| Backend_Prod
-    PiZero -.->|Tailscale VPN<br>② 実機テスト| Backend_Dev
+    %% Network (Tailscale)
+    PiZero --> Backend_Prod
+    PiZero --> Backend_Dev
 
-    %% ユーザーアクセス
-    User((👤 ユーザー)) -->|HTTPS| Frontend_Prod
-    Dev((👨‍💻 開発者)) -->|localhost| Frontend_Dev
+    %% User access
+    User((User)) --> Frontend_Prod
+    Dev((Dev)) --> Frontend_Dev
 
-    %% スタイル適用
+    %% Apply styles
     class Rover_System,Cloud_Server,Home_PC hardware;
     class Pixhawk,PiZero,Backend_Prod,Frontend_Prod,SITL,Backend_Dev,Frontend_Dev software;
 ```
@@ -74,66 +70,48 @@ graph TD
 
 ```mermaid
 sequenceDiagram
-    participant User as 👤 User
-    participant FE as 💻 Frontend (React)
-    participant BE as 🐍 Backend (FastAPI)
-    participant Rover as 🚜 Rover (SITL/Pixhawk)
+    participant User
+    participant Frontend
+    participant Backend
+    participant Rover
 
-    Note over User, FE: Authentication
-    User->>FE: Access Page
-    FE->>User: Show Login Form
-    User->>FE: Enter Password
-    FE->>BE: POST /api/login {"password": "..."}
-    BE->>BE: Check password.txt
-    alt Valid
-        BE-->>FE: 200 OK
-        FE->>User: Show Dashboard
-    else Invalid
-        BE-->>FE: 200 OK {"status": "error"}
-        FE->>User: Show Error
+    User->>Frontend: Access Page
+    Frontend->>User: Show Login Form
+    User->>Frontend: Submit Password
+    Frontend->>Backend: POST /api/login
+    Backend->>Backend: Validate Password
+    alt OK
+        Backend-->>Frontend: 200 OK
+    else
+        Backend-->>Frontend: 200 Error
     end
 
-    Note over FE, BE: WebSocket Connection (ws://.../ws)
-    FE->>BE: Connect
-    BE-->>FE: Accept
+    Frontend->>Backend: Open WebSocket
+    Backend-->>Frontend: Accept
 
-    Note over BE, Rover: MAVLink Connection (UDP:14552)
-    BE->>Rover: Wait for Heartbeat (Non-blocking)
-    Rover-->>BE: HEARTBEAT
-    BE->>BE: Connection Established
+    Backend->>Rover: Wait for Heartbeat
+    Rover-->>Backend: HEARTBEAT
 
-    par Telemetry Loop (Backend -> Frontend)
-        loop Every ~10ms
-            Rover-->>BE: MAVLink Message (ATTITUDE, GLOBAL_POSITION_INT, VFR_HUD...)
-            BE->>BE: Parse & Convert to JSON
-            BE->>FE: WebSocket Send (JSON)
-            FE->>User: Update UI (Map, HUD, Status)
-        end
-    and Command Loop (Frontend -> Backend)
-        User->>FE: Click "ARM" Button
-        FE->>BE: WebSocket Send {"type": "COMMAND", "command": "ARM"}
-        BE->>Rover: MAVLink Command (mav.arducopter_arm())
-        Rover-->>BE: COMMAND_ACK (Result)
-        
-        User->>FE: Click "Forward" Button
-        FE->>BE: WebSocket Send {"type": "COMMAND", "command": "FORWARD", "value": 1.0}
-        BE->>BE: Update RC Override Values (Throttle=2000)
-        loop Every Cycle
-            BE->>Rover: RC_CHANNELS_OVERRIDE (Steer, Throttle...)
-        end
+    par Telemetry
+        Rover-->>Backend: MAVLink messages
+        Backend-->>Frontend: WS send
+    and Commands
+        Frontend->>Backend: COMMAND
+        Backend->>Rover: MAVLink COMMAND
     end
+```
 
 ### 追加: 距離センサーと自動停止のフロー
 
 フロントエンドでの自動停止は次のような流れで動作します（簡易説明）:
 
-1. Pixhawk / Rover が `DISTANCE_SENSOR` (LiDAR / Sonar) を出力
-2. Backend (`backend/main.py`) が `DISTANCE_SENSOR` を受信し、フロントエンド向けに `TELEMETRY` メッセージとして `{ type: "TELEMETRY", data: { sonar_range: <cm> } }` を送信
-3. Frontend (React) が `telemetry.TELEMETRY.sonar_range` を監視し、サイドバーの `Auto-stop` で選択された閾値以下になった場合に自動で `COMMAND: STOP` を送信
-4. 自動停止は「後退中 (バック)」の判定がある場合は作動をスキップし、送信機(RC)の操作は優先して即座に復帰できるよう挙動制御を行います（詳細は SystemSpecifications を参照）
 
-この追記はアーキテクチャ図そのものは変えず、データフローの補足説明として追加しています。
-```
+1. Pixhawk / Rover が `DISTANCE_SENSOR` (LiDAR / Sonar) を出力します。
+2. Backend (`backend/main.py`) が `DISTANCE_SENSOR` を受信し、フロントエンド向けに `TELEMETRY` メッセージとして
+    `{ type: "TELEMETRY", data: { sonar_range: <cm> } }` を送信します。
+3. Frontend (React) が `telemetry.TELEMETRY.sonar_range` を監視し、サイドバーの `Auto-stop` で選択された閾値以下になった場合に自動で `COMMAND: STOP` を送信します。
+4. 自動停止は「後退中 (バック)」の判定がある場合は作動をスキップし、送信機(RC)の操作は優先して即座に復帰できるよう挙動制御を行います（詳細は SystemSpecifications を参照）
+    この追記はアーキテクチャ図そのものは変えず、データフローの補足説明として追加しています。
 
 ### 内部処理フロー (backend/main.py)
 
