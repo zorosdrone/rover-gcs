@@ -16,4 +16,4 @@ cd ~/GitHub/ardupilot/Rover
 # sim_vehicle.py -v Rover -f rover-skid --console --map --out=udp:127.0.0.1:14552
 # GUI不要の場合は--consoleと--mapを外す
 # -l: 初期位置 (Lat,Lon,Alt,Heading) -> 茨城県稲敷郡河内町金江津７５０１−２
-sim_vehicle.py -v Rover -f rover-skid --out=udp:127.0.0.1:14552 -l 35.867722,140.263472,10,0
+sim_vehicle.py -v Rover  --out=udp:127.0.0.1:14552 -l 35.867722,140.263472,10,0
