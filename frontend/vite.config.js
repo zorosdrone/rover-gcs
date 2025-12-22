@@ -6,11 +6,12 @@ import basicSsl from '@vitejs/plugin-basic-ssl'
 export default defineConfig({
   plugins: [
     react(),
-    basicSsl()
+    basicSsl() // ★ HTTPS化 (オレオレ証明書生成)
   ],
   server: {
-    host: true, // 0.0.0.0 でリッスンして外部アクセスを許可
-    // 以下を追加
+    host: '0.0.0.0', // ← true から '0.0.0.0' (文字列) に変更してIPv4固定
+    port: 5173,
+    https: true,
     allowedHosts: [
       'rover.zorosmap.me',
       'trigkeys5',
@@ -28,6 +29,7 @@ export default defineConfig({
         target: 'ws://127.0.0.1:8000',
         ws: true,
         changeOrigin: true,
+        secure: false,
       }
     }
   }
