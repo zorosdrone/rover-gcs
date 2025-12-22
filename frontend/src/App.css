@@ -57,6 +57,10 @@
 }
 
 .dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
   flex: 0 0 auto;
   margin-bottom: 10px;
 }
@@ -66,6 +70,126 @@
   flex: 1;
   gap: 10px;
   min-height: 0; /* Allow flex items to shrink below content size */
+}
+
+/* Grid-based layout variants - use class switching on .dashboard-content */
+.dashboard-content.layout-camera {
+  display: grid;
+  grid-template-columns: 1fr 2fr; /* Left: Map (smaller) | Right: Camera (larger) */
+  grid-auto-rows: 1fr;
+  gap: 10px;
+  min-height: 0;
+}
+
+.dashboard-content.layout-map {
+  display: grid;
+  grid-template-columns: 360px 1fr; /* Sidebar | Map */
+  grid-auto-rows: 1fr;
+  gap: 10px;
+  min-height: 0;
+}
+
+/* Sidebar content blocks */
+.sidebar-connection {
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+.sidebar-connection.connected { background-color: #d4edda; }
+.sidebar-connection.disconnected { background-color: #f8d7da; }
+
+.hud {
+  border: 1px solid #ccc;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.sonar-row {
+  margin-top: 10px;
+  padding: 6px;
+  background: #eef;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.system-control {
+  display: flex;
+  gap: 5px;
+}
+
+.manual-control {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid #ccc;
+  padding: 10px;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.control-toggle-btn {
+  padding: 5px 10px;
+  font-size: 0.8em;
+  cursor: pointer;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+.settings-row { display:flex; gap:8px; }
+.settings-row select { padding: 2px; font-size: 0.9em; }
+
+.joystick-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 5px;
+  min-height: 160px;
+  width: 100%;
+  position: relative;
+}
+
+.stop-button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  border-radius: 4px;
+  width: 100%;
+}
+
+/* Camera mode specific columns */
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.map-area, .camera-area {
+  flex: 1 1 auto;
+  min-height: 180px; /* reduced so controls below can remain visible */
+}
+.controls-area {
+  flex: 0 0 auto;
+}
+.telemetry-area {
+  flex: 0 0 160px; /* slightly reduced telemetry area */
 }
 
 .dashboard-sidebar {
@@ -96,7 +220,14 @@
 /* Telemetry Footer Layout */
 .telemetry-container {
   display: flex;
-  gap: 10px;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  box-sizing: border-box;
+  height: 160px; /* fixed height for telemetry areas (reduced) */
+  overflow: auto;
   flex-wrap: wrap; /* Allow items to wrap on small screens */
 }
 
@@ -108,11 +239,13 @@
   box-sizing: border-box;
 }
 
+.telemetry-item pre { overflow-x: auto; margin: 0; font-size: 0.8em; }
+
 /* Messages: High priority, takes more space */
 .telemetry-item.messages {
   flex: 2 1 300px; /* Grow: 2, Shrink: 1, Basis: 300px */
   overflow-y: auto;
-  max-height: 80px;
+  max-height: 160px; /* allow more vertical space inside telemetry container */
 }
 
 /* Others: Lower priority */
@@ -123,139 +256,452 @@
   overflow: hidden; /* Prevent content from breaking layout */
 }
 
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-  /* Compact Header */
-  .logo {
-    height: 3em; /* Smaller logo */
-    padding: 0.5em;
-  }
-  .dashboard-header {
-    margin-bottom: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .dashboard-header h1 {
-    font-size: 1.2em;
-    margin: 0;
-  }
-
-  /* Stack Layout: Controls on top, Map below */
-  .dashboard-content {
-    flex-direction: column;
-  }
-
-  .dashboard-sidebar {
-    width: 100%;
-    flex: 0 0 auto; /* Fit to content */
-    max-height: 45vh; /* Limit height */
-    padding-right: 0;
-    order: 1;
-  }
-
-  .dashboard-map-container {
-    flex: 1; /* Take remaining height */
-    min-height: 200px; /* Ensure map has some height */
-    order: 2;
-  }
-  
-  /* Telemetry: Prioritize Messages and Status */
-  .telemetry-item.messages {
-    flex: 1 0 100%; /* Full width */
-    max-height: 60px; /* Smaller height */
-    order: 1;
-  }
-  
-  .telemetry-item.status {
-    flex: 1 0 100%; /* Full width */
-    order: 2;
-    padding: 2px;
-  }
-  
-  /* Hide bulky debug info on mobile to prioritize controls */
-  .telemetry-item.position,
-  .telemetry-item.heartbeat {
-    display: none;
-  }
+/* --- Login --- */
+.login-root {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+  flex-direction: column;
+  background-color: #f0f2f5;
+  overflow-y: auto;
+}
+.login-panel {
+  padding: 2rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 400px;
+  margin: auto;
+}
+.login-title {
+  margin-bottom: 1rem;
+  text-align: center;
+}
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.login-input {
+  padding: 0.5rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+.login-button {
+  padding: 0.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+.login-button-disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+.login-error {
+  color: red;
+  margin-top: 1rem;
+  text-align: center;
 }
 
-/* Mobile Landscape Optimization */
-@media (max-height: 600px), (orientation: landscape) and (max-width: 960px) {
-  .dashboard-container {
-    padding: 5px;
-  }
-  
-  h1 {
-    display: none; /* Hide title */
-  }
-
-  .dashboard-header {
-    margin-bottom: 5px;
-    height: auto;
-    min-height: 30px;
-  }
-
-  /* Force Row Layout: Left Control, Right Map */
-  .dashboard-content {
-    flex-direction: row !important;
-  }
-
-  .dashboard-sidebar {
-    flex: 0 0 220px !important; /* Fixed width sidebar */
-    width: 220px !important;
-    max-height: none !important; /* Allow full height */
-    overflow-y: auto;
-    gap: 5px;
-    order: 1 !important;
-  }
-
-  .dashboard-map-container {
-    flex: 1;
-    order: 2 !important;
-  }
-
-  /* Show Messages in Footer */
-  .dashboard-footer {
-    display: block !important; /* Re-enable footer */
-    flex: 0 0 80px; /* Fixed height for messages */
-    margin-top: 5px;
-    overflow: hidden;
-  }
-
-  .telemetry-container {
-    height: 100%;
-  }
-  
-  .telemetry-item.messages {
-    flex: 1 0 100%;
-    height: 100%;
-    max-height: none;
-    overflow-y: auto;
-  }
-
-  /* Hide other telemetry to save space */
-  .telemetry-item.status,
-  .telemetry-item.position,
-  .telemetry-item.heartbeat {
-    display: none !important;
-  }
-  
-  /* Make buttons/inputs smaller */
-  button, select, input {
-    font-size: 0.8em;
-    padding: 2px !important;
-  }
-  
-  h2, h3 {
-    font-size: 1em;
-    margin: 5px 0;
-  }
+/* --- Camera --- */
+.camera-view-wrapper {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background-color: #000;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #ccc;
+  flex-shrink: 0;
 }
 
-/* Hide optional units (like km/h) when space is limited */
-@media (max-width: 1024px), (max-height: 600px) {
-  .optional-unit {
-    display: none;
-  }
+/* --- Map Icon Toggle --- */
+.map-icon-toggle {
+  position: absolute;
+  top: 10px;
+  left: 50px;
+  z-index: 1000;
+  background-color: white;
+  padding: 5px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+  display: flex;
+  gap: 10px;
+}
+.map-icon-label {
+  margin-right: 10px;
+  cursor: pointer;
+  font-size: 0.8em;
+}
+
+/* --- Location Marker Popup --- */
+.location-popup {
+  padding: 4px;
+  text-align: center;
+}
+.location-popup-speed {
+  margin-bottom: 8px;
+  font-size: 0.9em;
+  color: #333;
+}
+.location-popup-select {
+  margin-left: 5px;
+  padding: 2px;
+}
+.location-popup-move {
+  background-color: #007bff;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+.location-popup-coords {
+  font-size: 0.7em;
+  color: #666;
+  margin-top: 6px;
+}
+
+/* --- Sidebar Heartbeat --- */
+.sidebar-heartbeat {
+  margin-top: 5px;
+  display: flex;
+  gap: 10px;
+  font-size: 0.9em;
+}
+.armed { color: red; }
+.disarmed { color: green; }
+
+/* --- HUD --- */
+.hud-grid {
+  font-size: 1em;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.hud-speed {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hud-thr, .hud-alt {
+  color: #666;
+}
+
+/* --- Sonar --- */
+.sonar-row {
+  margin-top: 10px;
+  padding: 6px;
+  background: #eef;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sonar-label {
+  font-weight: bold;
+}
+.autostop-select-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.autostop-label {
+  font-weight: bold;
+}
+.autostop-select {
+  padding: 2px;
+  font-size: 0.9em;
+}
+
+/* --- System Control --- */
+.system-select {
+  padding: 8px;
+  flex: 1;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+.armed-bg {
+  font-weight: bold;
+  background-color: #d4edda;
+}
+.disarmed-bg {
+  background-color: #f8d7da;
+}
+
+/* --- Manual Control --- */
+.manual-toggle-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 5px;
+}
+.settings-select {
+  padding: 2px;
+  font-size: 0.9em;
+}
+.slider-row {
+  margin-bottom: 5px;
+}
+.slider-label {
+  display: block;
+  font-size: 0.8em;
+}
+.slider-input {
+  width: 100%;
+}
+.joystick-status {
+  margin-top: 15px;
+  font-size: 0.9em;
+  font-weight: bold;
+  color: #555;
+}
+
+/* --- Telemetry --- */
+.telemetry-message-row {
+  border-bottom: 1px solid #eee;
+}
+.telemetry-message-time {
+  color: #888;
+}
+
+/* --- Dashboard Header --- */
+.dashboard-title {
+  margin: 0;
+}
+.dashboard-header-btns {
+  display: flex;
+  gap: 10px;
+}
+.dashboard-layout-btn {
+  padding: 5px 10px;
+  cursor: pointer;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+}
+.dashboard-switch-btn {
+  padding: 5px 10px;
+  cursor: pointer;
+  background-color: #61dafb;
+  color: #282c34;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+}
+.dashboard-logout-btn {
+  padding: 5px 10px;
+  cursor: pointer;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+/* --- Auto-stop Toast --- */
+.autostop-toast {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(220,53,69,0.95);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 6px;
+  z-index: 4000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  display: flex;
+  align-items: center;
+}
+.autostop-toast-title {
+  margin-right: 8px;
+}
+
+/* --- Map/Telemetry Area --- */
+.dashboard-mapcol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: calc(100vh - 140px);
+}
+.dashboard-maparea {
+  flex: 1 1 auto;
+  min-height: 180px;
+  min-width: 0;
+}
+.dashboard-telemetryarea {
+  flex: 0 0 160px;
+}
+
+/* Ensure the map fills remaining vertical space even if parent inline styles exist */
+.dashboard-content.layout-map .dashboard-maparea {
+  /* Subtract approximate header + telemetry heights so the map fills the visible area */
+  height: calc(100vh - 220px) !important;
+  display: block;
+}
+
+.dashboard-content.layout-map .dashboard-maparea .map-leaflet {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* --- MapContainer --- */
+.map-leaflet {
+  height: 100%;
+  width: 100%;
+  min-height: 180px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Layout fixes: ensure dashboard fills viewport and map stretches to bottom */
+.dashboard-container {
+  height: 100vh !important;
+  min-height: 100vh !important;
+  box-sizing: border-box;
+  overflow: auto !important; /* allow page scroll instead of cutting off content */
+}
+
+/* Make camera/map layouts fill available vertical space (subtract header) */
+.dashboard-content.layout-camera,
+.dashboard-content.layout-map {
+  height: calc(100vh - 72px) !important; /* header approx 72px, adjust if needed */
+  min-height: 0 !important;
+}
+
+/* Ensure left/right column stretches to full layout height so map-area flex:1 grows */
+.dashboard-content.layout-camera .left-column,
+.dashboard-content.layout-camera .right-column {
+  height: 100% !important;
+}
+
+/* For map mode, ensure the map column uses full height and the leaflet fills it */
+.dashboard-content.layout-map .dashboard-mapcol {
+  height: 100% !important;
+}
+.dashboard-content.layout-map .dashboard-maparea {
+  height: calc(100% - 160px) !important; /* reserve telemetry area height */
+  min-height: 180px !important;
+}
+.dashboard-content.layout-map .dashboard-telemetryarea {
+  height: 160px !important;
+}
+
+/* Controls area should scroll if it's tall so STOP button remains reachable */
+.controls-area,
+.dashboard-sidebar,
+.manual-control {
+  max-height: calc(100% - 120px) !important;
+  overflow: auto !important;
+}
+
+/* Telemetry container: ensure visibility and internal scrolling */
+.telemetry-container {
+  height: 160px !important;
+  overflow: auto !important;
+}
+
+/* Additional fixes to ensure columns and map fill available height */
+:root {
+  --header-height: 88px; /* adjust if your header is taller/shorter */
+}
+
+.dashboard-content {
+  align-items: stretch;
+  align-content: stretch;
+}
+
+/* Camera layout: make grid rows stretch and columns fill height */
+.dashboard-content.layout-camera {
+  grid-auto-rows: 1fr;
+  height: calc(100vh - var(--header-height)) !important;
+}
+.dashboard-content.layout-camera > .left-column,
+.dashboard-content.layout-camera > .right-column {
+  height: 100% !important;
+  display: flex;
+  flex-direction: column;
+}
+.dashboard-content.layout-camera .map-area {
+  flex: 1 1 auto;
+  min-height: 0 !important; /* allow it to grow/shrink to fill */
+  height: 100% !important;
+}
+.dashboard-content.layout-camera .controls-area {
+  overflow: auto !important;
+}
+.dashboard-content.layout-camera .telemetry-area {
+  flex: 0 0 160px !important;
+}
+
+/* Map layout: ensure the map column and map area fill the available height */
+.dashboard-content.layout-map {
+  height: calc(100vh - var(--header-height)) !important;
+}
+.dashboard-content.layout-map .dashboard-mapcol {
+  display: flex;
+  flex-direction: column;
+  height: 100% !important;
+}
+.dashboard-content.layout-map .dashboard-maparea {
+  flex: 1 1 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+.dashboard-content.layout-map .dashboard-telemetryarea {
+  flex: 0 0 160px !important;
+}
+
+/* Camera layout: support .dashboard-sidebar (used in current JSX) as left column */
+.dashboard-content.layout-camera > .dashboard-sidebar {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  box-sizing: border-box;
+}
+
+/* Ensure map-area's internal dashboard-map-container fills the available height */
+.dashboard-content.layout-camera .map-area .dashboard-map-container,
+.dashboard-content.layout-map .dashboard-maparea .dashboard-map-container {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Make the Leaflet container fill its parent dashboard-map-container */
+.dashboard-map-container > .map-leaflet,
+.dashboard-maparea .dashboard-map-container > .map-leaflet {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* Ensure Leaflet container can shrink/grow inside flex parents */
+.map-leaflet {
+  min-height: 0 !important;
+}
+
+/* Make sidebar controls scrollable so STOP button remains reachable */
+.dashboard-sidebar,
+.controls-area,
+.manual-control {
+  max-height: calc(100vh - var(--header-height) - 40px) !important;
+  overflow: auto !important;
 }

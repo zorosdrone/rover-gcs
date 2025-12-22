@@ -110,13 +110,13 @@ function LocationMarker() {
           offset={[0, 0]}
           minWidth={150}
         >
-          <div style={{ padding: '4px', textAlign: 'center' }}>
-            <div style={{ marginBottom: '8px', fontSize: '0.9em', color: '#333' }}>
+          <div className="location-popup">
+            <div className="location-popup-speed">
               速度を選択:
               <select 
                 value={selectedSpeed} 
                 onChange={(e) => setSelectedSpeed(parseFloat(e.target.value))}
-                style={{ marginLeft: '5px', padding: '2px' }}
+                className="location-popup-select"
               >
                 <option value={0.1}>0.1 m/s</option>
                 <option value={0.5}>0.5 m/s</option>
@@ -127,20 +127,12 @@ function LocationMarker() {
             
             <div 
               onClick={handleMoveHere}
-              style={{ 
-                backgroundColor: '#007bff',
-                color: 'white',
-                padding: '6px 12px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontSize: '0.9em'
-              }}
+              className="location-popup-move"
             >
               ここに移動
             </div>
             
-            <div style={{ fontSize: '0.7em', color: '#666', marginTop: '6px' }}>
+            <div className="location-popup-coords">
               {menuPos.lat.toFixed(5)}, {menuPos.lng.toFixed(5)}
             </div>
           </div>
@@ -583,63 +575,34 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
   if (!isAuthenticated) {
     console.log("Rendering login form. isLoggingIn:", isLoggingIn);
     return (
-      <div style={{ 
-        display: "flex", 
-        justifyContent: "center", 
-        alignItems: "center", 
-        minHeight: "100vh", // Use minHeight instead of height
-        padding: "20px",    // Add padding to prevent edge touching
-        boxSizing: "border-box",
-        flexDirection: "column", 
-        backgroundColor: "#f0f2f5",
-        overflowY: "auto"   // Allow scrolling if content is tall
-      }}>
-        <div style={{ 
-          padding: "2rem", 
-          backgroundColor: "white", 
-          borderRadius: "8px", 
-          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          width: "100%",
-          maxWidth: "400px", // Limit width
-          margin: "auto"     // Center in flex container with scroll
-        }}>
-          <h2 style={{ marginBottom: "1rem", textAlign: "center" }}>Login</h2>
-          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <div className="login-root">
+        <div className="login-panel">
+          <h2 className="login-title">Login</h2>
+          <form onSubmit={handleLogin} className="login-form">
             <input 
               type="password" 
               value={passwordInput} 
               onChange={(e) => setPasswordInput(e.target.value)} 
               placeholder="Password"
-              style={{ padding: "0.5rem", fontSize: "1rem", borderRadius: "4px", border: "1px solid #ccc" }}
+              className="login-input"
             />
             <button 
               type="submit" 
               disabled={isLoggingIn} 
               onClick={() => console.log("Login button clicked")}
-              style={{ padding: "0.5rem", fontSize: "1rem", cursor: isLoggingIn ? "not-allowed" : "pointer", backgroundColor: isLoggingIn ? "#ccc" : "#007bff", color: "white", border: "none", borderRadius: "4px" }}
+              className={`login-button${isLoggingIn ? ' login-button-disabled' : ''}`}
             >
               {isLoggingIn ? "Logging in..." : "Login"}
             </button>
           </form>
-          {loginError && <p style={{ color: "red", marginTop: "1rem", textAlign: "center" }}>{loginError}</p>}
+          {loginError && <p className="login-error">{loginError}</p>}
         </div>
       </div>
     );
   }
 
-
-
   const renderCamera = () => (
-    <div style={{ 
-      width: '100%', 
-      aspectRatio: '16/9', 
-      backgroundColor: '#000', 
-      marginBottom: '10px',
-      borderRadius: '4px',
-      overflow: 'hidden',
-      border: '1px solid #ccc',
-      flexShrink: 0
-    }}>
+    <div className="camera-view-wrapper">
       <VdoPlayerWithYolo viewId="43wygAK" />
     </div>
   );
@@ -656,53 +619,44 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
   const renderSidebarContent = () => (
     <>
       {/* Connection Status */}
-      <div style={{ 
-        padding: "10px", 
-        backgroundColor: status.includes("Connected") ? "#d4edda" : "#f8d7da",
-        borderRadius: "4px",
-        border: "1px solid #ccc"
-      }}>
+      <div className={`sidebar-connection ${status.includes("Connected") ? 'connected' : 'disconnected'}`}>
         <div>Connection: <strong>{status}</strong></div>
         {telemetry.HEARTBEAT && (
-          <div style={{ marginTop: "5px", display: "flex", gap: "10px", fontSize: "0.9em" }}>
+          <div className="sidebar-heartbeat">
             <div>Mode: <strong>{telemetry.HEARTBEAT.mode_name}</strong></div>
-            <div>State: <strong style={{ color: telemetry.HEARTBEAT.is_armed ? "red" : "green" }}>
-              {telemetry.HEARTBEAT.is_armed ? "ARMED" : "DISARMED"}
-            </strong></div>
+            <div>
+              State: <strong className={telemetry.HEARTBEAT.is_armed ? 'armed' : 'disarmed'}>
+                {telemetry.HEARTBEAT.is_armed ? 'ARMED' : 'DISARMED'}
+              </strong>
+            </div>
           </div>
         )}
       </div>
 
-
       {/* HUD */}
-      <div style={{ border: "1px solid #ccc", padding: "10px", backgroundColor: "#f9f9f9", borderRadius: "4px" }}>
+      <div className="hud">
         {telemetry.VFR_HUD ? (
-          <div style={{ fontSize: "1em", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5px" }}>
-            <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div className="hud-grid">
+            <div className="hud-speed">
               {telemetry.VFR_HUD.groundspeed.toFixed(1)} m/s
               <span className="optional-unit"> ({(telemetry.VFR_HUD.groundspeed * 3.6).toFixed(1)} km/h)</span>
             </div>
             <div><strong>Hdg:</strong> {telemetry.VFR_HUD.heading}°</div>
-            <div style={{ color: "#666" }}>Thr: {telemetry.VFR_HUD.throttle}%</div>
-            <div style={{ color: "#666" }}>Alt: {telemetry.VFR_HUD.alt.toFixed(1)} m</div>
+            <div className="hud-thr">Thr: {telemetry.VFR_HUD.throttle}%</div>
+            <div className="hud-alt">Alt: {telemetry.VFR_HUD.alt.toFixed(1)} m</div>
           </div>
         ) : (
           <div>No HUD Data</div>
         )}
         {/* Sonar Range と Auto-stop を同一行に配置 */}
-        <div style={{ marginTop: "10px", padding: "6px", background: "#eef", borderRadius: "4px", display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontWeight: "bold" }}>Sonar Range:</span>
+        <div className="sonar-row">
+          <div className="sonar-range">
+            <span className="sonar-label">Sonar Range:</span>
             <span className="highlight-value">{formatDistance(telemetry.TELEMETRY?.sonar_range)}</span>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontWeight: 'bold' }}>Auto-stop:</label>
-            <select
-              value={stopThreshold}
-              onChange={(e) => setStopThreshold(Number(e.target.value))}
-              style={{ padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
-            >
+          <div className="autostop-select-row">
+            <label className="autostop-label">Auto-stop:</label>
+            <select value={stopThreshold} onChange={(e) => setStopThreshold(Number(e.target.value))} className="autostop-select">
               <option value={0}>Off</option>
               <option value={40}>40 cm</option>
               <option value={60}>60 cm</option>
@@ -714,269 +668,186 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
       </div>
 
       {/* System Control */}
-      <div style={{ display: "flex", gap: "5px" }}>
-          <select 
-            value={telemetry.HEARTBEAT?.is_armed ? "ARM" : "DISARM"}
-            onChange={(e) => sendCommand(e.target.value)}
-            style={{ 
-              padding: "8px", 
-              flex: 1,
-              backgroundColor: telemetry.HEARTBEAT?.is_armed ? "#d4edda" : "#f8d7da",
-              fontWeight: "bold",
-              borderRadius: "4px",
-              border: "1px solid #ccc"
-            }}
-          >
-            <option value="DISARM">DISARMED</option>
-            <option value="ARM">ARMED</option>
-          </select>
-
-          <select 
-            value={telemetry.HEARTBEAT?.mode_name || "MANUAL"}
-            onChange={(e) => sendCommand('SET_MODE', e.target.value)}
-            style={{ 
-              padding: "8px", 
-              flex: 1,
-              borderRadius: "4px",
-              border: "1px solid #ccc"
-            }}
-          >
-            <option value="MANUAL">MANUAL</option>
-            <option value="GUIDED">GUIDED</option>
-            <option value="AUTO">AUTO</option>
-            <option value="HOLD">HOLD</option>
-            <option value="RTL">RTL</option>
-            <option value="SMART_RTL">SMART_RTL</option>
-          </select>
+      <div className="system-control">
+        <select value={telemetry.HEARTBEAT?.is_armed ? 'ARM' : 'DISARM'} onChange={(e) => sendCommand(e.target.value)} className={`system-select ${telemetry.HEARTBEAT?.is_armed ? 'armed-bg' : 'disarmed-bg'}`}>
+          <option value="DISARM">DISARMED</option>
+          <option value="ARM">ARMED</option>
+        </select>
+        <select value={telemetry.HEARTBEAT?.mode_name || 'MANUAL'} onChange={(e) => sendCommand('SET_MODE', e.target.value)} className="system-select">
+          <option value="MANUAL">MANUAL</option>
+          <option value="GUIDED">GUIDED</option>
+          <option value="AUTO">AUTO</option>
+          <option value="HOLD">HOLD</option>
+          <option value="RTL">RTL</option>
+          <option value="SMART_RTL">SMART_RTL</option>
+        </select>
       </div>
 
       {/* Manual Control */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px", border: "1px solid #ccc", padding: "10px", borderRadius: "8px" }}>
-          
-          {/* Control Mode Toggle */}
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "5px" }}>
-            <button
-              onClick={() => setControlMode(prev => prev === 'slider' ? 'joystick' : 'slider')}
-              style={{
-                padding: "5px 10px",
-                fontSize: "0.8em",
-                cursor: "pointer",
-                backgroundColor: "#007bff",
-                color: "white",
-                border: "none",
-                borderRadius: "4px"
-              }}
-            >
-              Switch to {controlMode === 'slider' ? 'Joystick' : 'Sliders'}
-            </button>
-          </div>
-
-          {/* Settings Row */}
-          <div style={{ display: "flex", gap: "5px" }}>
-              <select 
-                value={transmitInterval} 
-                onChange={(e) => setTransmitInterval(Number(e.target.value))}
-                style={{ flex: 1, padding: "2px", fontSize: "0.8em" }}
-              >
-                <option value="0">Tx: Off</option>
-                <option value="100">Tx: 0.1s</option>
-                <option value="500">Tx: 0.5s</option>
-                <option value="1000">Tx: 1s</option>
-                <option value="2000">Tx: 2s</option>
-                <option value="5000">Tx: 5s</option>
-              </select>
-
-              <select 
-                value={throttleRange} 
-                onChange={(e) => setThrottleRange(Number(e.target.value))}
-                style={{ flex: 1, padding: "2px", fontSize: "0.8em" }}
-              >
-                <option value="250">Rg: 250</option>
-                <option value="500">Rg: 500</option>
-                <option value="1000">Rg: 1000</option>
-              </select>
-          </div>
-
-          {controlMode === 'slider' ? (
-            <>
-              {/* Throttle Slider */}
-              <div>
-                <label style={{ display: "block", fontSize: "0.8em" }}>
-                  Thr: {manualControl.throttle}
-                </label>
-                <input 
-                  type="range" 
-                  min={1500 - throttleRange} 
-                  max={1500 + throttleRange} 
-                  step="1"
-                  value={manualControl.throttle} 
-                  onChange={handleThrottleChange}
-                  style={{ width: "100%" }}
-                />
-              </div>
-
-              {/* Steering Slider */}
-              <div>
-                <label style={{ display: "block", fontSize: "0.8em" }}>
-                  Str: {manualControl.steer}
-                </label>
-                <input 
-                  type="range" 
-                  min="1000" 
-                  max="2000" 
-                  step="1"
-                  value={manualControl.steer} 
-                  onChange={handleSteerChange}
-                  style={{ width: "100%" }}
-                />
-              </div>
-            </>
-          ) : (
-            /* Joystick Control */
-            <div style={{ 
-              display: "flex", 
-              flexDirection: "column",
-              justifyContent: "center", 
-              alignItems: "center",
-              padding: "5px",
-              minHeight: "160px",
-              width: "100%",
-              position: "relative",
-              zIndex: 0 // Ensure new stacking context
-            }}>
-              <Joystick 
-                size={150} 
-                sticky={false} 
-                baseColor="#eee" 
-                stickColor="#007bff" 
-                move={handleJoystickMove} 
-                stop={handleJoystickStop}
-                controlPlaneShape="square"
-                baseShape="square"
-              />
-              <div style={{ marginTop: "15px", fontSize: "0.9em", fontWeight: "bold", color: "#555" }}>
-                <div>Thr: {manualControl.throttle}</div>
-                <div>Str: {manualControl.steer}</div>
-              </div>
-            </div>
-          )}
-
-          <button 
-            onClick={stopManualControl} 
-            style={{ 
-              backgroundColor: "#dc3545", 
-              color: "white", 
-              border: "none", 
-              padding: "8px", 
-              cursor: "pointer",
-              fontWeight: "bold",
-              borderRadius: "4px",
-              width: "100%"
-            }}
-          >
-            STOP
+      <div className="manual-control">
+        {/* Control Mode Toggle */}
+        <div className="manual-toggle-row">
+          <button onClick={() => setControlMode(prev => prev === 'slider' ? 'joystick' : 'slider')} className="control-toggle-btn">
+            Switch to {controlMode === 'slider' ? 'Joystick' : 'Sliders'}
           </button>
+        </div>
+        {/* Settings Row */}
+        <div className="settings-row">
+          <select value={transmitInterval} onChange={(e) => setTransmitInterval(Number(e.target.value))} className="settings-select">
+            <option value="0">Tx: Off</option>
+            <option value="100">Tx: 0.1s</option>
+            <option value="500">Tx: 0.5s</option>
+            <option value="1000">Tx: 1s</option>
+            <option value="2000">Tx: 2s</option>
+            <option value="5000">Tx: 5s</option>
+          </select>
+          <select value={throttleRange} onChange={(e) => setThrottleRange(Number(e.target.value))} className="settings-select">
+            <option value="250">Rg: 250</option>
+            <option value="500">Rg: 500</option>
+            <option value="1000">Rg: 1000</option>
+          </select>
+        </div>
+        {controlMode === 'slider' ? (
+          <>
+            <div className="slider-row">
+              <label className="slider-label">Thr: {manualControl.throttle}</label>
+              <input type="range" min={1500 - throttleRange} max={1500 + throttleRange} step="1" value={manualControl.throttle} onChange={handleThrottleChange} className="slider-input" />
+            </div>
+            <div className="slider-row">
+              <label className="slider-label">Str: {manualControl.steer}</label>
+              <input type="range" min="1000" max="2000" step="1" value={manualControl.steer} onChange={handleSteerChange} className="slider-input" />
+            </div>
+          </>
+        ) : (
+          <div className="joystick-container">
+            <Joystick size={150} sticky={false} baseColor="#eee" stickColor="#007bff" move={handleJoystickMove} stop={handleJoystickStop} controlPlaneShape="square" baseShape="square" />
+            <div className="joystick-status">
+              <div>Thr: {manualControl.throttle}</div>
+              <div>Str: {manualControl.steer}</div>
+            </div>
+          </div>
+        )}
+        <button onClick={stopManualControl} className="stop-button">STOP</button>
       </div>
     </>
   );
 
   const renderMap = () => (
-    <div className="dashboard-map-container" style={{ height: '100%', minHeight: '240px', marginBottom: '10px', display: 'flex', flexDirection: 'column' }}>
-           {/* Icon Toggle */}
-           <div style={{ position: "absolute", top: "10px", left: "50px", zIndex: 1000, backgroundColor: "white", padding: "5px", borderRadius: "4px", boxShadow: "0 1px 5px rgba(0,0,0,0.4)" }}>
-             <label style={{ marginRight: "10px", cursor: "pointer", fontSize: "0.8em" }}>
-               <input 
-                 type="radio" 
-                 name="iconType" 
-                 value="arrow" 
-                 checked={iconType === 'arrow'} 
-                 onChange={() => setIconType('arrow')} 
-               /> Arrow
-             </label>
-             <label style={{ cursor: "pointer", fontSize: "0.8em" }}>
-               <input 
-                 type="radio" 
-                 name="iconType" 
-                 value="car" 
-                 checked={iconType === 'car'} 
-               onChange={() => setIconType('car')} 
-               /> Car
-             </label>
-           </div>
-
-           <MapContainer 
-              center={telemetry.GLOBAL_POSITION_INT
-                ? [telemetry.GLOBAL_POSITION_INT.lat / 10000000, telemetry.GLOBAL_POSITION_INT.lon / 10000000]
-                : [35.867722, 140.263472]} 
-              zoom={18} 
+    <div className="dashboard-map-container">
+      <div className="map-icon-toggle">
+        <label className="map-icon-label">
+          <input
+            type="radio"
+            name="iconType"
+            value="arrow"
+            checked={iconType === 'arrow'}
+            onChange={() => setIconType('arrow')}
+          /> Arrow
+        </label>
+        <label className="map-icon-label">
+          <input
+            type="radio"
+            name="iconType"
+            value="car"
+            checked={iconType === 'car'}
+            onChange={() => setIconType('car')}
+          /> Car
+        </label>
+      </div>
+      <MapContainer 
+        center={telemetry.GLOBAL_POSITION_INT
+          ? [telemetry.GLOBAL_POSITION_INT.lat / 10000000, telemetry.GLOBAL_POSITION_INT.lon / 10000000]
+          : [35.867722, 140.263472]} 
+        zoom={18} 
+        maxZoom={22}
+        className="map-leaflet"
+        attributionControl={false}
+      >
+        <LayersControl position="topright">
+          <LayersControl.BaseLayer name="Standard (OSM)">
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              maxNativeZoom={19}
               maxZoom={22}
-              style={{ height: "100%", width: "100%" }}
-              attributionControl={false}
-           >
-              <LayersControl position="topright">
-                <LayersControl.BaseLayer name="Standard (OSM)">
-                  <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    maxNativeZoom={19}
-                    maxZoom={22}
-                  />
-                </LayersControl.BaseLayer>
-                <LayersControl.BaseLayer checked name="Satellite (Esri)">
-                  <TileLayer
-                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                    attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                    maxNativeZoom={19}
-                    maxZoom={22}
-                  />
-                </LayersControl.BaseLayer>
-              </LayersControl>
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer checked name="Satellite (Esri)">
+            <TileLayer
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+              maxNativeZoom={19}
+              maxZoom={22}
+            />
+          </LayersControl.BaseLayer>
+        </LayersControl>
+        <Polyline positions={path} color="blue" />
+        {telemetry.GLOBAL_POSITION_INT && (
+          <>
+            <Marker 
+              position={[telemetry.GLOBAL_POSITION_INT.lat / 10000000, telemetry.GLOBAL_POSITION_INT.lon / 10000000]}
+              icon={iconType === 'car' 
+                ? createCarIcon(telemetry.VFR_HUD?.heading || 0)
+                : createArrowIcon(telemetry.VFR_HUD?.heading || 0)
+              }
+            >
+              <Popup>
+                Lat: {(telemetry.GLOBAL_POSITION_INT.lat / 10000000).toFixed(6)}<br />
+                Lon: {(telemetry.GLOBAL_POSITION_INT.lon / 10000000).toFixed(6)}
+              </Popup>
+            </Marker>
+            <MapUpdater center={[telemetry.GLOBAL_POSITION_INT.lat / 10000000, telemetry.GLOBAL_POSITION_INT.lon / 10000000]} />
+          </>
+        )}
+        <LocationMarker />
+      </MapContainer>
+    </div>
+  );
 
-              <Polyline positions={path} color="blue" />
-
-              {telemetry.GLOBAL_POSITION_INT && (
-                <>
-                  <Marker 
-                    position={[telemetry.GLOBAL_POSITION_INT.lat / 10000000, telemetry.GLOBAL_POSITION_INT.lon / 10000000]}
-                    icon={iconType === 'car' 
-                      ? createCarIcon(telemetry.VFR_HUD?.heading || 0)
-                      : createArrowIcon(telemetry.VFR_HUD?.heading || 0)
-                    }
-                  >
-                    <Popup>
-                      Lat: {(telemetry.GLOBAL_POSITION_INT.lat / 10000000).toFixed(6)}<br />
-                      Lon: {(telemetry.GLOBAL_POSITION_INT.lon / 10000000).toFixed(6)}
-                    </Popup>
-                  </Marker>
-                  <MapUpdater center={[telemetry.GLOBAL_POSITION_INT.lat / 10000000, telemetry.GLOBAL_POSITION_INT.lon / 10000000]} />
-                </>
-              )}
-              <LocationMarker />
-           </MapContainer>
+  // Telemetry renderer (shared)
+  const renderTelemetryPanel = () => (
+    <div className="telemetry-container">
+      <div className="telemetry-item messages">
+        <strong>Messages</strong>
+        {statusMessages.length === 0 && <div>No messages</div>}
+        {statusMessages.map(msg => (
+          <div key={msg.id} className="telemetry-message-row">
+            <span className="telemetry-message-time">{msg.time}</span> {msg.text}
+          </div>
+        ))}
+      </div>
+      <div className="telemetry-item status">
+        <strong>Status</strong>
+        <pre>
+          Bat: {telemetry.SYS_STATUS ? `${(telemetry.SYS_STATUS.voltage_battery/1000).toFixed(1)}V` : 'N/A'}{"\n"}
+          Cur: {telemetry.SYS_STATUS ? `${(telemetry.SYS_STATUS.current_battery/100).toFixed(1)}A` : 'N/A'}{"\n"}
+          Load: {telemetry.SYS_STATUS ? `${telemetry.SYS_STATUS.load/10}%` : 'N/A'}
+        </pre>
+      </div>
+      <div className="telemetry-item position">
+        <strong>Position</strong>
+        <pre>{JSON.stringify(telemetry.GLOBAL_POSITION_INT, null, 2)}</pre>
+      </div>
+      <div className="telemetry-item heartbeat">
+        <strong>Heartbeat</strong>
+        <pre>{JSON.stringify(telemetry.HEARTBEAT, null, 2)}</pre>
+      </div>
     </div>
   );
 
   return (
-    <div className="dashboard-container" style={{ height: "auto", minHeight: "100vh", overflow: "visible" }}>
-      <div className="dashboard-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ margin: 0 }}>🚜 Rover GCS (Advanced) v2</h1>
-        <div style={{ display: 'flex', gap: '10px' }}>
+    <div className="dashboard-container">
+      <div className="dashboard-header">
+        <h1 className="dashboard-title">🚜 Rover GCS (Advanced) v2</h1>
+        <div className="dashboard-header-btns">
           <button 
             onClick={() => setLayoutMode(prev => prev === 'map' ? 'camera' : 'map')} 
-            style={{ 
-              padding: "5px 10px", 
-              cursor: "pointer", 
-              backgroundColor: "#28a745", 
-              color: "white", 
-              border: "none", 
-              borderRadius: "4px",
-              fontWeight: "bold"
-            }}
+            className="dashboard-layout-btn"
           >
             Layout: {layoutMode === 'map' ? 'Map' : 'Camera'}
           </button>
-          <button onClick={onSwitchMode} style={{ padding: "5px 10px", cursor: "pointer", backgroundColor: "#61dafb", color: "#282c34", border: "none", borderRadius: "4px", fontWeight: "bold" }}>Switch to Classic</button>
-          <button onClick={handleLogout} style={{ padding: "5px 10px", cursor: "pointer", backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "4px" }}>Logout</button>
+          <button onClick={onSwitchMode} className="dashboard-switch-btn">Switch to Classic</button>
+          <button onClick={handleLogout} className="dashboard-logout-btn">Logout</button>
         </div>
       </div>
       {/* Auto-stop toast notification */}
@@ -984,79 +855,36 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
         <div
           role="alert"
           aria-live="assertive"
-          style={{
-            position: 'fixed',
-            top: 70,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            backgroundColor: 'rgba(220,53,69,0.95)',
-            color: 'white',
-            padding: '10px 16px',
-            borderRadius: '6px',
-            zIndex: 4000,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
-          }}
+          className="autostop-toast"
         >
-          <strong style={{ marginRight: 8 }}>AUTO STOP</strong>
+          <strong className="autostop-toast-title">AUTO STOP</strong>
           <span>{autoStopToast.message}</span>
         </div>
       )}
 
-      <div className="dashboard-content" style={{ display: 'flex', flexDirection: 'row', flex: 1, minHeight: '600px', gap: '10px', padding: '10px' }}>
+      <div className={`dashboard-content ${layoutMode === 'camera' ? 'layout-camera' : 'layout-map'}`}>
         {layoutMode === 'camera' ? (
-           /* Camera Mode: 3 Columns (Sidebar | Camera | Map) */
+           /* Camera Mode: 左: Map (上) + Controls (下)  右: Camera (上) + Telemetry (下) */
            <>
-             <div className="dashboard-sidebar" style={{ width: '360px', flexShrink: 0 }}>
-               {renderSidebarContent()}
+             <div className="dashboard-sidebar">
+               <div className="map-area">{renderMap()}</div>
+               <div className="controls-area">{renderSidebarContent()}</div>
              </div>
-             <div style={{ flex: 2, minWidth: '400px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-               {renderCamera()}
+             <div className="right-column">
+               <div className="camera-area">{renderCamera()}</div>
+               <div className="telemetry-area">{renderTelemetryPanel()}</div>
              </div>
-             {windowWidth > 1000 && (
-               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                 {renderMap()}
-               </div>
-             )}
            </>
         ) : (
            /* Map Mode: 左:操作パネル 右:Map (上) + メッセージ等 (下) */
            <>
-             <div className="dashboard-sidebar" style={{ width: '360px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+             <div className="dashboard-sidebar">
                {renderCamera()}
                {renderSidebarContent()}
              </div>
-             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px', height: 'calc(100vh - 140px)' }}>
-               {/* Map: 上部、可変で残り高さを占有 */}
-               <div style={{ flex: '1 1 auto', minHeight: '240px', minWidth: 0 }}>{renderMap()}</div>
-
-               {/* Telemetry: 下部、固定高さでスクロール可能 */}
-               <div className="telemetry-container" style={{ display: 'flex', gap: '12px', background: '#fff', border: '1px solid #ccc', borderRadius: '8px', padding: '10px', height: '180px', overflow: 'auto', boxSizing: 'border-box' }}>
-                 <div className="telemetry-item messages" style={{ minWidth: '180px', flex: '1 1 220px' }}>
-                   <strong>Messages</strong>
-                   {statusMessages.length === 0 && <div>No messages</div>}
-                   {statusMessages.map(msg => (
-                     <div key={msg.id} style={{ borderBottom: "1px solid #eee" }}>
-                       <span style={{ color: "#888" }}>{msg.time}</span> {msg.text}
-                     </div>
-                   ))}
-                 </div>
-                 <div className="telemetry-item status" style={{ minWidth: '120px', flex: '0 0 160px' }}>
-                   <strong>Status</strong>
-                   <pre style={{ overflowX: "auto", margin: 0 }}>
-                     Bat: {telemetry.SYS_STATUS ? `${(telemetry.SYS_STATUS.voltage_battery/1000).toFixed(1)}V` : 'N/A'}{'\n'}
-                     Cur: {telemetry.SYS_STATUS ? `${(telemetry.SYS_STATUS.current_battery/100).toFixed(1)}A` : 'N/A'}{'\n'}
-                     Load: {telemetry.SYS_STATUS ? `${telemetry.SYS_STATUS.load/10}%` : 'N/A'}
-                   </pre>
-                 </div>
-                 <div className="telemetry-item position" style={{ minWidth: '120px', flex: '0 0 180px' }}>
-                   <strong>Position</strong>
-                   <pre style={{ overflowX: "auto", margin: 0 }}>{JSON.stringify(telemetry.GLOBAL_POSITION_INT, null, 2)}</pre>
-                 </div>
-                 <div className="telemetry-item heartbeat" style={{ minWidth: '120px', flex: '0 0 180px' }}>
-                   <strong>Heartbeat</strong>
-                   <pre style={{ overflowX: "auto", margin: 0 }}>{JSON.stringify(telemetry.HEARTBEAT, null, 2)}</pre>
-                 </div>
-               </div>
+             <div className="dashboard-mapcol">
+               <div className="dashboard-maparea">{renderMap()}</div>
+               <div className="dashboard-telemetryarea">{renderTelemetryPanel()}</div>
              </div>
            </>
         )}
