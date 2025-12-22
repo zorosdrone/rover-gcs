@@ -234,7 +234,27 @@ SITL 以外の実機や他のシミュレータと接続する場合は、`backe
 
 ![System Architecture](docs/images/architecture.png)
 
-より詳細な構成やデータフローについては `docs/architecture.md` を、ハードウェアやArduPilotパラメータ設定などの詳細な仕様については `docs/SystemSpecifications.md` を参照してください。
+より詳細な構成やデータフローについては `docs/architecture.md` を参照してください。
+
+**ハードウェア仕様**: 実機の構成やパーツ一覧は `docs/hardware.md` をご覧ください。
+
+## 実機写真とスクリーンショット
+
+実際に動作しているローバーやフロントエンドのスクリーンショットをプロジェクト内に保存しています。ローカルでプレビューする際の参考にしてください。
+
+- ローバー写真 (実機):
+
+  ![Rover photo](docs/images/rover_20251220.jpg)
+
+- フロントエンド: カメラ表示スクリーンショット
+
+  ![WGCS Camera view](docs/images/wgcs_camera.jpg)
+
+- YOLO / 距離表示デモ
+
+  ![YOLO and Range demo](docs/images/wgcs_yolo&rangef.jpg)
+
+これらの画像は `docs/images/` に格納されています。
 
 ## ライセンス
 
