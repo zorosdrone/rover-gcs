@@ -60,8 +60,8 @@
 * **センサー類 (Pixhawkへ集約):**
     * **TF-Luna (LiDAR):** `SERIAL 4/5` ポートへ接続 (Tx/Rxクロス)。
     * **SG90 (Servo):** `AUX 1 (SERVO9)` へ接続。
-    * **HC-SR04 (Sonar Right):** `AUX 2 (Echo)` / `AUX 1 (Trig)`。
-    * **HC-SR04 (Sonar Left):** `AUX 4 (Echo)` / `AUX 3 (Trig)`。
+    * **HC-SR04 (Sonar Right):** `AUX 2 (Echo)` / `AUX 1 (Trig)`。（未実装）
+    * **HC-SR04 (Sonar Left):** `AUX 4 (Echo)` / `AUX 3 (Trig)`。（未実装）
 
     > **⚠️ 電圧に関する重要警告:**
     > PixhawkのGPIOは **3.3V 耐圧** です。一般的な HC-SR04 (5V版) を使用する場合、Echo信号線（センサー出力）を直接接続すると **Pixhawkが破損します**。
@@ -83,7 +83,7 @@
         * `/api/login` エンドポイントによる簡易パスワード認証を実装すること。
 
 * **Frontend (React):**
-    * **モバイル最適化:**
+    * **モバイル最適化:**　（未実装）
         * スマホ横持ち (Landscape) 時に操作パネルと地図を左右分割表示すること。
         * `dvh` 単位を使用してビューポートの高さを適切に管理すること。
     * **Advanced Mode 機能:**
