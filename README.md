@@ -112,7 +112,7 @@ ArduPilot Rover 向けの多機能な Ground Control Station (GCS) Web アプリ
 ### 1. リポジトリのクローン
 
 ```bash
-git clone https://github.com/zorosdrone/rover-gcs.git
+git clone --recursive https://github.com/zorosdrone/rover-gcs.git
 cd rover-gcs
 ```
 
@@ -212,9 +212,8 @@ ArduPilot の公式ドキュメントに従ってセットアップしてくだ�
 
 ```bash
 cd ~
-git clone https://github.com/ArduPilot/ardupilot.git
+git clone --recursive https://github.com/ArduPilot/ardupilot.git
 cd ardupilot
-git submodule update --init --recursive
 Tools/environment_install/install-prereqs-ubuntu.sh -y
 ```
 
