@@ -31,7 +31,6 @@ ArduPilot Rover 向けの多機能な Ground Control Station (GCS) Web アプリ
 - [必要要件](#必要要件)
 - [セットアップ手順](#セットアップ手順)
 - [起動方法](#起動方法)
-- [開発用 ArduPilot シミュレーター起動手順](#開発用-ardupilot-シミュレーター起動手順)
 - [ログ / 設定ファイル](#ログ--設定ファイル)
 - [システム構成](#システム構成)
 - [ライセンス](#ライセンス)
@@ -150,6 +149,20 @@ cd frontend
 npm install
 ```
 
+### 4. (オプション) ArduPilot SITL のセットアップ
+
+開発時にシミュレーターを使用する場合は、ArduPilot のソースコードを取得し、環境を構築する必要があります。
+
+```bash
+mkdir -p ~/GitHub
+cd ~/GitHub
+git clone --recursive https://github.com/ArduPilot/ardupilot.git
+cd ardupilot
+Tools/environment_install/install-prereqs-ubuntu.sh -y
+```
+
+一度ログアウト・ログイン、または `~/.profile` を再読み込みして PATH を反映してください。
+
 ## 起動方法
 
 ### ローカル開発（推奨）
@@ -185,6 +198,14 @@ Python バックエンドと React フロントエンドが一括で起動しま
 
 スクリプトを使用せず、個別に起動する場合の手順です。
 
+#### 0. シミュレーター (SITL) の起動
+
+```bash
+cd ~/GitHub/ardupilot/ArduRover
+sim_vehicle.py -v Rover -f rover-skid --console --map --out=udp:127.0.0.1:14552
+```
+- バックエンドが UDP 14552 ポートで待ち受けているため、`--out` オプションで出力を追加します。
+
 #### 1. バックエンドの起動
 
 ```bash
@@ -202,6 +223,11 @@ cd frontend
 npm run dev
 ```
 
+> [!TIP]
+> **接続設定の変更**:
+> バックエンドはデフォルトで `udp:0.0.0.0:14552` をリッスンします。
+> SITL 以外の実機や他のシミュレータと接続する場合は、`backend/main.py` の `CONNECTION_STRING` を環境に合わせて変更してください。
+
 
 ### Docker 本番運用（Caddy等のリバースプロキシ前提）
 
@@ -218,47 +244,6 @@ docker compose -f docker-compose.prod.yml up --build -d
 本番では Caddy / Nginx などで、`/` をFastAPI（API+静的ファイル）にリバースプロキシする構成を想定しています。
 
 **開発は `start_dev.sh` で直接起動するのが推奨です。**
-
-## 開発用 ArduPilot シミュレーター起動手順
-
-開発時は ArduPilot の SITL (Software In The Loop) シミュレーターを起動し、rover-gcs と接続して動作確認を行います。
-
-### 1. ArduPilot のソースコード取得
-
-ArduPilot の公式ドキュメントに従ってセットアップしてください。例（Linux）:
-
-```bash
-cd ~
-git clone --recursive https://github.com/ArduPilot/ardupilot.git
-cd ardupilot
-Tools/environment_install/install-prereqs-ubuntu.sh -y
-```
-
-一度ログアウト・ログイン、または `~/.profile` を再読み込みして PATH を反映します。
-
-### 2. Rover SITL の起動
-
-プロジェクトルートにある `start_sitl.sh` を使用するのが簡単です。
-
-```bash
-./start_sitl.sh
-```
-
-手動で起動する場合は、`ardupilot` ディレクトリで次を実行します。
-バックエンドが UDP 14552 ポートで待ち受けているため、`--out` オプションで出力を追加します。
-
-```bash
-cd ~/ardupilot/ArduRover
-sim_vehicle.py -v Rover -f rover-skid --console --map --out=udp:127.0.0.1:14552
-```
-
-### 3. rover-gcs との接続
-
-1. 上記の SITL を起動しておく
-2. `rover-gcs` のバックエンドとフロントエンドを起動（`./start_dev.sh`）
-
-バックエンドはデフォルトで `udp:0.0.0.0:14552` をリッスンします。
-SITL 以外の実機や他のシミュレータと接続する場合は、`backend/main.py` の `CONNECTION_STRING` を環境に合わせて変更してください。
 
 ## ログ / 設定ファイル
 
