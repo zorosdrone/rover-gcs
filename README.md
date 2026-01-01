@@ -115,9 +115,18 @@ ArduPilot Rover 向けの多機能な Ground Control Station (GCS) Web アプリ
 
 ### 1. リポジトリのクローン
 
+サブモジュール (VDO.Ninja) を含めてクローンするため、`--recursive` オプションを付けてください。
+
 ```bash
 git clone --recursive https://github.com/zorosdrone/rover-gcs.git
 cd rover-gcs
+```
+
+**※ すでにクローン済みの場合:**
+もし `frontend/public/vdo` が空の場合は、以下のコマンドを実行してください。
+
+```bash
+git submodule update --init --recursive
 ```
 
 ### 2. バックエンドのセットアップ
@@ -291,6 +300,20 @@ SITL 以外の実機や他のシミュレータと接続する場合は、`backe
   ![YOLO and Range demo](docs/images/wgcs_yolo&rangef.jpg)
 
 これらの画像は `docs/images/` に格納されています。
+
+## トラブルシューティング
+
+### Q. `npm install` でエラーが出る (ECONNRESET 等)
+WSL2環境の場合、DNS設定が原因の可能性があります。`/etc/resolv.conf` を確認し、一時的に `nameserver 8.8.8.8` に変更して再試行してください。
+
+### Q. カメラ映像が表示されず、アプリ画面が入れ子になる
+`frontend/public/vdo` フォルダが空でないか確認してください。空の場合は、上記の `git submodule update` コマンドを実行してください。
+
+### Q. スマホや外部デバイスから接続できない
+Windows Defender ファイアウォールで、以下のポートの受信許可設定（TCP/UDP）を行ってください。
+- TCP: 8000 (Backend), 5173 (Frontend)
+- UDP: 14552 (MAVLink)
+WSL2を使用している場合、Windows側のIPアドレスでのアクセスや、ポートフォワーディング設定が必要になる場合があります。
 
 ## ライセンス
 
