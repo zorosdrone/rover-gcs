@@ -142,7 +142,7 @@ function LocationMarker() {
   )
 }
 
-function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
+function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval, viewId, setViewId }) {
   // Login State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
@@ -211,6 +211,11 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
   const manualControlRef = useRef({ throttle: 1500, steer: 1500 }) // 最新の値を保持するためのRef
   const wsRef = useRef(null)
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
+  const [tempViewId, setTempViewId] = useState(viewId);
+
+  useEffect(() => {
+    setTempViewId(viewId);
+  }, [viewId]);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth)
@@ -603,7 +608,7 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
 
   const renderCamera = () => (
     <div className="camera-view-wrapper">
-      <VdoPlayerWithYolo viewId="43wygAK" />
+      <VdoPlayerWithYolo viewId={viewId} />
     </div>
   );
 
@@ -840,6 +845,65 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval }) {
       <div className="dashboard-header">
         <h1 className="dashboard-title">🚜 Rover GCS (Advanced) v2</h1>
         <div className="dashboard-header-btns">
+          <div style={{ display: 'flex', alignItems: 'center', marginRight: '15px', backgroundColor: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '4px' }}>
+            <span style={{ fontSize: '0.8rem', marginRight: '5px', color: '#eee', fontWeight: 'bold' }}>VDO ID:</span>
+            <input 
+                type="text" 
+                value={tempViewId || ''} 
+                onChange={(e) => setTempViewId(e.target.value)}
+                style={{ 
+                    width: '90px', 
+                    padding: '4px', 
+                    marginRight: '5px', 
+                    border: '1px solid #555', 
+                    borderRadius: '3px',
+                    backgroundColor: '#222',
+                    color: 'white',
+                    fontSize: '0.9rem'
+                }}
+            />
+            <button 
+                onClick={() => setViewId && setViewId(tempViewId)}
+                style={{
+                    padding: '4px 10px',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    backgroundColor: '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '3px',
+                    fontWeight: 'bold'
+                }}
+            >
+                Set
+            </button>
+            <button 
+                onClick={() => {
+                  const idToUse = tempViewId || viewId;
+                  if (!idToUse) {
+                      alert("View IDを入力してください");
+                      return;
+                  }
+                  const url = `${window.location.origin}/vdo/index.html?push=${idToUse}`;
+                  if (prompt("配信URL (OKを押すとコピー):", url) !== null) {
+                      navigator.clipboard.writeText(url).catch(e => console.error(e));
+                  }
+                }}
+                style={{
+                    marginLeft: '5px',
+                    padding: '4px 10px',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    backgroundColor: '#17a2b8',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '3px',
+                    fontWeight: 'bold'
+                }}
+            >
+                配信URL
+            </button>
+          </div>
           <button 
             onClick={() => setLayoutMode(prev => prev === 'map' ? 'camera' : 'map')} 
             className="dashboard-layout-btn"

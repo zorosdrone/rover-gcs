@@ -6,6 +6,7 @@ import './App.css'
 function App() {
   const [mode, setMode] = useState(null) // null: 選択画面, 'classic', 'advanced'
   const [transmitInterval, setTransmitInterval] = useState(1000) // TX Interval (ms) - Shared state
+  const [viewId, setViewId] = useState("43wygAK") // VDO.ninja View ID
 
   if (!mode) {
     return (
@@ -20,6 +21,24 @@ function App() {
       }}>
         <h1>Rover GCS</h1>
         <p>Select Operation Mode</p>
+        
+        <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <label htmlFor="viewId" style={{ marginBottom: '5px' }}>VDO.ninja View ID:</label>
+          <input 
+            id="viewId"
+            type="text" 
+            value={viewId} 
+            onChange={(e) => setViewId(e.target.value)}
+            style={{ 
+              padding: '8px', 
+              borderRadius: '4px', 
+              border: '1px solid #ccc',
+              fontSize: '1rem',
+              textAlign: 'center'
+            }}
+          />
+        </div>
+
         <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
           <button 
             onClick={() => setMode('classic')}
@@ -71,6 +90,8 @@ function App() {
           onSwitchMode={() => setMode('classic')} 
           transmitInterval={transmitInterval}
           setTransmitInterval={setTransmitInterval}
+          viewId={viewId}
+          setViewId={setViewId}
         />
       )}
     </>
