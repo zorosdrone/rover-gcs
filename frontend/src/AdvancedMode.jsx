@@ -202,7 +202,8 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval, vie
   const [autoStopToast, setAutoStopToast] = useState({ visible: false, message: '' })
   const toastTimeoutRef = useRef(null)
   // transmitInterval is now passed via props
-  const [throttleRange, setThrottleRange] = useState(250) // Throttle range (+/-)
+  const [throttleRangeForward, setThrottleRangeForward] = useState(250) // Throttle range Forward (+)
+  const [throttleRangeBackward, setThrottleRangeBackward] = useState(250) // Throttle range Backward (-)
   // Auto-stop threshold in cm. 0 = off
   const [stopThreshold, setStopThreshold] = useState(60)
   const [statusMessages, setStatusMessages] = useState([]) // MAVLink messages log
@@ -339,12 +340,12 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval, vie
         case 'ArrowUp':
         case 'e':
         case 'E':
-          newThrottle = 1500 + throttleRange
+          newThrottle = 1500 + throttleRangeForward
           break
         case 'ArrowDown':
         case 'd':
         case 'D':
-          newThrottle = 1500 - throttleRange
+          newThrottle = 1500 - throttleRangeBackward
           break
         case 'ArrowLeft':
         case 's':
@@ -416,7 +417,7 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval, vie
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [throttleRange])
+  }, [throttleRangeForward, throttleRangeBackward])
 
   const sendCommand = (command, value = null) => {
     const ws = wsRef.current
@@ -556,7 +557,12 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval, vie
 
     // Map Y to Throttle
     // Up (positive Y) -> Forward
-    const throttle = 1500 + event.y * throttleRange;
+    let throttle = 1500;
+    if (event.y >= 0) {
+        throttle = 1500 + event.y * throttleRangeForward;
+    } else {
+        throttle = 1500 + event.y * throttleRangeBackward;
+    }
     
     // Map X to Steer
     // Right (positive X) -> Right Turn
@@ -698,7 +704,7 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval, vie
         </div>
         {/* Settings Row */}
         <div className="settings-row">
-          <select value={transmitInterval} onChange={(e) => setTransmitInterval(Number(e.target.value))} className="settings-select">
+                    <select value={transmitInterval} onChange={(e) => setTransmitInterval(Number(e.target.value))} className="settings-select">
             <option value="0">Tx: Off</option>
             <option value="100">Tx: 0.1s</option>
             <option value="500">Tx: 0.5s</option>
@@ -706,17 +712,24 @@ function AdvancedMode({ onSwitchMode, transmitInterval, setTransmitInterval, vie
             <option value="2000">Tx: 2s</option>
             <option value="5000">Tx: 5s</option>
           </select>
-          <select value={throttleRange} onChange={(e) => setThrottleRange(Number(e.target.value))} className="settings-select">
-            <option value="250">Rg: 250</option>
-            <option value="500">Rg: 500</option>
-            <option value="1000">Rg: 1000</option>
+          <select value={throttleRangeForward} onChange={(e) => setThrottleRangeForward(Number(e.target.value))} className="settings-select">
+            <option value="150">Rg Fwd: 150</option>
+            <option value="250">Rg Fwd: 250</option>
+            <option value="500">Rg Fwd: 500</option>
+            <option value="1000">Rg Fwd: 1000</option>
+          </select>
+          <select value={throttleRangeBackward} onChange={(e) => setThrottleRangeBackward(Number(e.target.value))} className="settings-select">
+            <option value="150">Rg Bwd: 150</option>
+            <option value="250">Rg Bwd: 250</option>
+            <option value="500">Rg Bwd: 500</option>
+            <option value="1000">Rg Bwd: 1000</option>
           </select>
         </div>
         {controlMode === 'slider' ? (
           <>
             <div className="slider-row">
               <label className="slider-label">Thr: {manualControl.throttle}</label>
-              <input type="range" min={1500 - throttleRange} max={1500 + throttleRange} step="1" value={manualControl.throttle} onChange={handleThrottleChange} className="slider-input" />
+              <input type="range" min={1500 - throttleRangeBackward} max={1500 + throttleRangeForward} step="1" value={manualControl.throttle} onChange={handleThrottleChange} className="slider-input" />
             </div>
             <div className="slider-row">
               <label className="slider-label">Str: {manualControl.steer}</label>
