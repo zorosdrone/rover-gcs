@@ -2,22 +2,22 @@
 > このドキュメントは、開発者や上級ユーザー向けのより詳細な技術仕様を記載しています。
 >一般的な利用方法については、ルートの [README.md](../README.md) を参照してください。
 
-### 🛠️ Rover開発プロジェクト：システム仕様書 (2025.12.14)
-**～ Cloud-Centric & Smartphone Edge AI 構成 ～**
+### 🛠️ Rover開発プロジェクト：システム仕様書 (2026.01.03)
+**～ Cloud-Centric & Smartphone Edge Camera 構成 ～**
 
 #### 1. システムアーキテクチャ (Architecture)
-「脳（判断・API）」をクラウド（公開Webサーバー）に集約し、ローバー側は「神経（伝達）」と「反射神経（エッジAI）」に徹する構成。
+「脳（判断・API）」をクラウド（公開Webサーバー）に集約し、ローバー側は「神経（伝達）」と「目（カメラ）」に徹する構成。
 ハードウェア構成を極限までシンプルにし、ソフトウェア（Web技術）で高度な制御を実現する。
 
 * **Cloud Server (Public Web Server):**
     * **OS:** Linux (Ubuntu etc.) - Tailscale 導入必須
-    * **Frontend:** React Web App (User Interface)
+    * **Frontend:** React Web App (User Interface & AI Inference)
     * **Backend:** FastAPI + pymavlink (Logic & Control)
-    * **役割:** ユーザー操作の受付、YOLOアラートの受信、PixhawkへのMAVLinkコマンド生成・送信。
+    * **役割:** ユーザー操作の受付、映像受信とYOLO推論、PixhawkへのMAVLinkコマンド生成・送信。
 
-* **Edge Terminal (Camera & AI):** Xiaomi Mi 11 Lite 5G
+* **Edge Terminal (Camera):** Xiaomi Mi 11 Lite 5G
     * **配置:** ローバー搭載
-    * **役割:** 映像送信 (VDO.Ninja - 自己ホスト) および YOLO 推論 (ブラウザ上) と距離計測。
+    * **役割:** 映像送信 (VDO.Ninja - 自己ホスト)。
 
 * **Control Bridge:** Raspberry Pi Zero 2 W
     * **OS:** Rpanion (ArduPilot用管理OS)
@@ -28,12 +28,12 @@
 
 * **映像 & AIデータ:**
     * スマホ (Sender) $\rightarrow$ [VDO.Ninja P2P] $\rightarrow$ Cloud Frontend (Receiver)
-    * スマホ (Sender) $\rightarrow$ [VDO.Ninja Data Channel] $\rightarrow$ Cloud Frontend (Object Detection & Distance Data)
-    * ※遅延回避のため、映像はサーバーを経由せずブラウザ間(P2P)で直接やり取りする。
+    * Cloud Frontend (Receiver) $\rightarrow$ [TensorFlow.js] $\rightarrow$ YOLO Object Detection (Browser)
+    * ※遅延回避のため、映像はサーバーを経由せずブラウザ間(P2P)で直接やり取りする。推論は受信側のブラウザで実行される。
 
 * **操縦コマンド & 安全停止フロー:**
-    1.  **AI検知:** スマホ(TF.js)が人物検知 $\rightarrow$ VDO.Ninja Data Channelで送信
-    2.  **受信:** Cloud Frontend (React) が受信
+    1.  **センサー監視:** Cloud Frontend (React) が Sonar/LiDAR 距離を監視
+    2.  **判定:** 閾値以下になった場合、停止コマンドを生成
     3.  **命令:** Cloud Frontend $\rightarrow$ [WebSocket: COMMAND] $\rightarrow$ Cloud Backend (FastAPI)
     4.  **制御:** Cloud Backend $\rightarrow$ [UDP over Tailscale] $\rightarrow$ Pi Zero 2 W $\rightarrow$ [Serial] $\rightarrow$ Pixhawk (HOLDモードへ)
 
@@ -89,7 +89,7 @@
     * **Advanced Mode 機能:**
         * スマートフォンからのリアルタイム映像表示。
         * 画面UI上からの VDO.Ninja View ID の動的設定および配信用URLの生成機能。
-        * 受信した映像に対する YOLO 物体検知結果の表示。
+        * 受信した映像に対する YOLO 物体検知結果の表示（ブラウザ内で推論）。
         * 物体までの距離情報の表示。
 * **VDO.Ninja連携 (自己ホスト):**
         * VDO.Ninja `iframe` APIを使用。
@@ -102,19 +102,16 @@
         * **Port:** 14552
 
 **C. Smartphone (Sender Page)**
-* **推論頻度の調整:**
-    * 発熱対策のため、推論 (`model.execute`) は毎フレーム行わず、**500msに1回程度** に間引く実装を推奨。
-* **YOLO と距離計測:**
-    * カメラ映像に対して YOLO 推論を実行し、検出された物体の種類と画面上の位置、および距離センサー（LiDAR/Sonar）からの情報と連携して物体までの距離を算出・表示すること。
 * **配信アクセスURLのフォーマット:**
     * VDO.Ninja (自己ホスト) へは、以下のURLフォーマットでアクセスし、配信を開始すること。
     * `https://[VDO.NinjaホストのIPまたはドメイン]/vdo/index.html?push=[PUSH_ID]`
+    * ※スマホ側での推論は行わず、純粋なカメラ映像送信機として機能させる。
 
 #### 5. ArduPilot (Pixhawk) 重要パラメータ設定
 
 | カテゴリ | パラメータ | 設定値 | 目的 |
 | :--- | :--- | :--- | :--- |
-| **速度制限** | `SERVO3_MAX` | 1650 | 出力約37%制限。テスト時の暴走防止。 |
+| **速度制限** | `SERVO3_MAX` | 1750 | 出力約37%制限。テスト時の暴走防止。 |
 | | `CRUISE_SPEED` | 1.0 | 自動走行速度 (m/s)。早歩き程度。 |
 | **LiDAR** | `SERIAL4_PROTOCOL` | 9 | Lidar / Rangefinder |
 | (正面) | `RNGFND1_TYPE` | 20 | Benewake Serial (TF-Luna) |
