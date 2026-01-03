@@ -241,6 +241,8 @@ npm run dev
 
 ### Docker 本番運用（Caddy等のリバースプロキシ前提）
 
+本番サーバーへのデプロイ手順の詳細は [docs/deploy.md](docs/deploy.md) を参照してください。
+
 本番運用は `Dockerfile.prod` と `docker-compose.prod.yml` のみを使用します。
 旧 `docker-compose.yml` や `backend/Dockerfile`, `frontend/Dockerfile` は不要です。
 
