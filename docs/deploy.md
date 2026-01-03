@@ -15,11 +15,12 @@ ArduPilot Rover の SITL (Software In The Loop) と `rover-gcs` を組み合わ�
       - [UI: Auto-stop 閾値セレクタ](#ui-auto-stop-閾値セレクタ)
   - [3. 本番環境へのデプロイ (Docker)](#3-本番環境へのデプロイ-docker)
     - [3.1 構成概要](#31-構成概要)
-    - [3.2 デプロイ手順](#32-デプロイ手順)
-    - [3.3 Webサーバー設定 (HTTPS必須)](#33-webサーバー設定-https必須)
+    - [3.2 初回インストール手順](#32-初回インストール手順)
+    - [3.3 更新手順](#33-更新手順)
+    - [3.4 Webサーバー設定 (HTTPS必須)](#34-webサーバー設定-https必須)
       - [Caddy の場合 (推奨)](#caddy-の場合-推奨)
       - [Nginx の場合](#nginx-の場合)
-    - [3.4 VPN経由でのSITL接続](#34-vpn経由でのsitl接続)
+    - [3.5 VPN経由でのSITL接続](#35-vpn経由でのsitl接続)
   - [4. トラブルシューティング](#4-トラブルシューティング)
     - [WebSocketがつながらない](#websocketがつながらない)
     - [映像 (VDO.Ninja) が映らない](#映像-vdoninja-が映らない)
@@ -84,14 +85,27 @@ WebODMなどが同居する環境を想定し、ポート **8001** でサービ�
 - **ポート**: Host:8001 -> Container:8000
 - **機能**: FastAPIがAPIサーバーと静的ファイルサーバー(Reactアプリ)を兼ねます。
 
-### 3.2 デプロイ手順
+### 3.2 初回インストール手順
 
-git pull
-docker compose down
-docker compose -f docker-compose.prod.yml down
+本番サーバーに初めて導入する場合の手順です。
+
+```bash
+# 1. リポジトリのクローン
+cd ~
+git clone https://github.com/zorosdrone/rover-gcs.git
+cd rover-gcs
+
+# 2. パスワードの設定 (任意)
+# デフォルトは "password" です。変更する場合は backend/password.txt を作成します。
+echo "your_secure_password" > backend/password.txt
+
+# 3. コンテナのビルドと起動
 docker compose -f docker-compose.prod.yml up --build -d
+```
 
-本番サーバー上で以下のコマンドを実行します。
+### 3.3 更新手順
+
+ソースコードを最新版に更新して再デプロイする場合の手順です。
 
 ```bash
 cd ~/rover-gcs
@@ -99,18 +113,15 @@ cd ~/rover-gcs
 # 1. ソースコードの更新
 git pull
 
-# 2. 既存のコンテナを停止（ポート競合防止）
-docker compose down
+# 2. コンテナの再ビルドと再起動
 docker compose -f docker-compose.prod.yml down
-
-# 3. 本番用設定でビルド＆起動
 docker compose -f docker-compose.prod.yml up --build -d
 ```
 
 > **旧 `docker-compose.yml` や `backend/Dockerfile`, `frontend/Dockerfile` は不要です。**
 > 運用は `Dockerfile.prod` と `docker-compose.prod.yml` のみでOKです。
 
-### 3.3 Webサーバー設定 (HTTPS必須)
+### 3.4 Webサーバー設定 (HTTPS必須)
 
 カメラ映像 (VDO.Ninja/WebRTC) を使用するため、**HTTPS化が必須** です。
 リバースプロキシ (Caddy/Nginx) を使用して SSL化を行います。
@@ -143,7 +154,7 @@ server {
 }
 ```
 
-### 3.4 VPN経由でのSITL接続
+### 3.5 VPN経由でのSITL接続
 
 ローカルPCのSITLから、本番サーバーのGCSに接続する場合：
 
