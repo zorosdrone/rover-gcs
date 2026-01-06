@@ -1,125 +1,115 @@
-# ArduRover SITL × Webots 連携 :作業中
+# ArduRover SITL × Webots 連携ガイド
 
-## 1. ネットワーク環境の確定
+> [!WARNING]
+> **現在保留中 (2026.01.06)**
+> 本連携機能は、2026年1月6日時点において正常な動作が確認できていないため、開発を一時保留しています。手順は参考情報として参照してください。
 
-WSL2とWindows間の通信先を特定します。これはPC起動ごとに変わる可能性があるため、必ず最初に確認してください。
+このドキュメントでは、WSL2上の ArduPilot SITL と Windows上の Webots シミュレータを連携させ、Mission Planner で制御するまでの全手順を解説します。
+
+---
+
+## 1. ネットワーク・環境の準備
+
+WSL2とWindows間の通信を確立するために、それぞれのIPアドレスを確認します。
 
 * **Windows IP (SITLから見た送信先)**:
   WSL2で `cat /etc/resolv.conf` を実行。`nameserver` の右側のIP（例: `172.30.96.1`）を確認。
 * **WSL2 IP (Webotsから見た送信先)**:
   WSL2で `hostname -I` を実行。最初のIP（例: `172.30.98.2`）を確認。
 
----
-
-## 2. Windows Defender ファイアウォールの開放
-
-Windows側でパケットの通過を許可します。
-
-1. **「受信の規則」**を新規作成：
-   * **UDPポート**: `9002, 9003` を許可（SITL連携用）。
-   * **TCPポート**: `5760` を許可（Mission Planner用）。
-
-2. **設定内容**: 「接続を許可する」とし、プロファイルは「ドメイン・プライベート・パブリック」すべてにチェックを入れます。
+### Windows Defender ファイアウォールの設定
+Windows側で以下のポートのパケット通過を許可します。
+1. **UDPポート**: `9002, 9003` (SITL連携用)
+2. **TCPポート**: `5760` (MAVProxy/Mission Planner用)
+3. **UDPポート**: `14550` (Mission Planner 接続用)
 
 ---
 
-## 3. Webots UI（GUI）での設定項目
+## 2. Webots 側の設定
 
-Webotsの「Scene Tree（シーンツリー）」で、ロボットがArduPilotと通信できるように以下の項目を設定します。
+### Scene Tree（シーンツリー）の設定
+Webots の Robot ノードを以下のように構成します。
 
-1. **Robotノードの設定**:
-   * **`controller` フィールド**: `ardupilot_vehicle` (または `webots_vehicle.py`) を選択します。
-   * **`synchronization` フィールド**: **`TRUE`** に設定（SITLの計算速度と同期させるため）。
-   * **`supervisor` フィールド**: 必要に応じて `TRUE`（初期位置のリセットなどを行う場合）。
-   * **`controllerArgs` フィールド**: Python スクリプトへ引数を渡すために、以下の2行を追加してください。
+1. **Robotノード**:
+   * **`controller`**: `ardupilot_vehicle` (または `webots_vehicle.py`)
+   * **`synchronization`**: **`TRUE`** (必須: SITLと速度を同期)
+   * **`controllerArgs`**:
      * `--sitl-address`
-     * `172.30.98.2` （手順1でメモした WSL2 の IP）
+     * `172.30.98.2` （手順1で確認した **WSL2 IP**）
 
-2. **デバイスの命名（重要）**:
-   * タイヤのモーター（RotationalMotor）などの `name` フィールドが、Pythonスクリプト内の名称（例: `left_rear_wheel` など）と完全に一致しているか確認してください。
+2. **デバイス命名**:
+   * モーター等の `name` が Python スクリプト内の名称（例: `left_rear_wheel`）と一致していることを確認。
 
-3. **WorldInfoの設定**:
-   * **`basicTimeStep`**: `20` 程度を推奨（ArduPilotのループ周期に合わせるため）。
+3. **WorldInfo**:
+   * **`basicTimeStep`**: `20` 程度を推奨。
 
-
-## 4. Webotsコントローラーの修正
-
-ArduPilot公式のWebots用コントローラーファイルを編集します。
-
-* **修正ファイル（フルパス）**:
-  `C:\Program Files\Webots\projects\samples\devices\controllers\ardupilot_vehicle\webots_vehicle.py`
-  （※カスタムプロジェクトの場合は、自身の `controllers/` フォルダ内の該当ファイルを編集）
-
-### 修正：強制接続（Active Handshake）
-
-`_handle_sitl` メソッドを以下のように修正し、SITLの起動を待たずにパケットを送り始めます。
-
-```python
-def _handle_sitl(self, sitl_address="172.30.98.2", port=9002):
-    # 手順1のWSL2のIPを指定
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.bind(('0.0.0.0', port)) 
-    s.settimeout(0.01) # デッドロック防止
-
-    while True:
-        # 先にセンサーデータを送信（9003番ポート）してSITLを「起こす」
-        fdm_struct = self._get_fdm_struct()
-        s.sendto(fdm_struct, (sitl_address, port + 1)) 
-
-        try:
-            data, addr = s.recvfrom(512) # SITLからの制御を受信
-            if len(data) >= 144: # 制御構造体サイズ
-                command = struct.unpack(self.controls_struct_format, data[:self.controls_struct_size])
-                self._handle_controls(command)
-        except socket.timeout:
-            pass
-
-        if self.robot.step(self._timestep) == -1:
-            break
-
-```
+### コントローラーの修正（必要な場合）
+SITL の接続を待たずにパケット送信を開始させる（Active Handshake）ため、`webots_vehicle.py` の `_handle_sitl` メソッドを修正して動作確認することも可能
 
 ---
 
-## 5. ArduRover SITLの起動 (WSL2)
+## 3. SITL と MAVProxy の起動 (WSL2)
 
-`-C` を外して起動し、通信ポートを固定します。
+### ステップ 1: ArduRover SITL の起動
+ターミナル 1 で実行します。`-w` オプションはパラメータを初期化したい場合のみ使用してください。
 
 ```bash
-/home/ardupilot/GitHub/ardupilot/build/sitl/bin/ardurover \
-  -w \
-  --model webots-python \
-  --sim-address <WindowsのIP> \
-  --sim-port-out 9002 \
+# <Windows IP> は手順 1 で確認したものに置き換え
+/home/ardupilot/GitHub/ardupilot/build/sitl/bin/ardurover 
+  --model webots-python 
+  --sim-address 172.30.96.1 
+  --sim-port-out 9002 
   --sim-port-in 9003
 ```
 
----
+### ステップ 2: MAVProxy ブリッジの起動
+ターミナル 2 で実行します。これにより Mission Planner などの外部 GCS が接続可能になります。
 
-## 6. パラメータの強制変更（初期化）
-
-地上局（MAVProxy等）で以下のコマンドを必ず実行し、動作制限を解除します。
-
-1. **`param set ARMING_CHECK 0`**: 全ての安全チェックを無効化。
-2. **`param set FS_ACTION 0`**: フェイルセーフによる停止を防止。
-3. **`param set MAG_ENABLE 0`**: コンパス不備によるエラーを回避。
+```bash
+# --out には Windows IP を指定
+mavproxy.py --master=tcp:127.0.0.1:5760 --out=udp:172.30.96.1:14550
+```
 
 ---
 
-## 7. 最終操作手順
+## 4. パラメータ設定と保存
 
-1. **Webots**: 「Play」ボタンを押す。
+### 動作制限の解除（初回のみ推奨）
+MAVProxy または Mission Planner のコンソールで以下のコマンドを実行します。
+
+1. `param set ARMING_REQUIRE 0`: アーム操作を不要にする
+2. `param set FS_THR_ENABLE 0`: スロットルフェイルセーフ停止
+3. `param set COMPASS_ENABLE 0`: コンパスエラー回避
+4. `param set BRD_SAFETYENABLE 0`: 仮想セーフティスイッチ無効化
+
+### 💡 設定の保存場所 (EEPROM)
+* **保存ファイル**: `eeprom.bin` (SITL起動時のカレントディレクトリに生成)
+* **持続性**: `Write Params` を押すとこのファイルに書き込まれ、次回の SITL 起動時に自動で読み込まれます。
+* **初期化**: 完全にリセットしたい場合は、SITL 起動時に **`-w`** オプションを付与します。
+
+---
+
+## 5. Mission Planner の接続 (Windows)
+
+1. **接続設定**: 右上の接続種別を `UDP` に設定し、`CONNECT` をクリック。
+2. **ポート**: ポート番号 `14550` を入力。
+3. **ステータス確認**: `Messages` タブで SITL からのデータが届いているか確認します。
+
+---
+
+## 6. 最終操作手順
+
+1. **Webots**: 「Play」ボタンを押してシミュレーションを開始。
 2. **SITLターミナル**: `Waiting for connection` が消えるのを確認。
-3. **地上局**:
+3. **GCS操作**:
    * `mode manual`
    * `arm throttle`
-   * `rc 3 1650` (前進)
+   * `rc 3 1650` (前進テスト)
 
 ---
 
-**チェックリスト**:
-
-* [ ] `webots_vehicle.py` の送信先IPはWSL2のものか？
-* [ ] `struct.pack` は正確に `16d` (128バイト) か？
-* [ ] WindowsファイアウォールでUDP 9002/9003は許可されているか？
-* [ ] WebotsのRobotノードで `synchronization` は `TRUE` か？
+## チェックリスト
+* [ ] Windows/WSL2 の IP アドレスは最新のものを反映したか？
+* [ ] Windows ファイアウォールで UDP 9002/9003/14550 は開放されているか？
+* [ ] Webots の `synchronization` は `TRUE` になっているか？
+* [ ] SITL 起動ディレクトリに `eeprom.bin` が正しく生成されているか？
