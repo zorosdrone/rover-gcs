@@ -26,7 +26,7 @@
 
 ## 4. クイックスタート
 
-詳細な設定手順については [Webots 連携詳細ガイド](./webots_sim.md) を参照してください。
+詳細な設定手順については [Webots 連携詳細ガイド](./webots_setup.md) を参照してください。
 
 1. **Webots 起動**: Windows側で対象のワールド（`.wbt`）を開く。
 2. **SITL 起動**: WSL2側で `-f webots` オプションを付けて起動。
@@ -36,5 +36,5 @@
 
 ## 関連ドキュメント
 
-- [Webots 連携詳細ガイド (ネットワーク・設定編)](./webots_sim.md)
+- [Webots 連携詳細ガイド (ネットワーク・設定編)](./webots_setup.md)
 - [システムアーキテクチャ](./architecture.md)
