@@ -1,10 +1,7 @@
 # Webots 連携シミュレーションの概要
-
-> [!WARNING]
-> **現在保留中 (2026.01.06)**
-> 本連携機能は、2026年1月6日時点において正常な動作が確認できていないため、開発を一時保留しています。本ドキュメントの内容は構成案として参照してください。
-
 本プロジェクトでは、高機能3Dロボットシミュレータ **Webots** と **ArduRover SITL** を連携させることで、実機なしでの高度な開発・テスト環境を提供します。
+
+<img src="./images/webots_rovergcs.png" alt="Webotsとrover-gcsの連携" width="500px">
 
 ## 1. システム構成
 
@@ -28,13 +25,16 @@
 - **GCS UI/UX の開発**: リアルタイムな機体情報の表示確認。
 - **ミッションプランニング**: ウェイポイント走行のシミュレーション。
 
+<img src="./images/wgcs_yolo&rangef.jpg" alt="YOLOと距離計による認識シミュレーション" width="500px">
+
 ## 4. クイックスタート
 
 詳細な設定手順については [Webots 連携詳細ガイド](./webots_setup.md) を参照してください。
 
-1. **Webots 起動**: Windows側で対象のワールド（`.wbt`）を開く。
-2. **SITL 起動**: WSL2側で `-f webots` オプションを付けて起動。
-3. **GCS 起動**: `rover-gcs` を起動し、ブラウザで `localhost:5173` にアクセス。
+1. **Webots 起動**: Windows側で対象のワールド（`.wbt`）を開き、シミュレーションを開始（Play）する。
+2. **SITL 起動**: WSL2側のターミナルで `ardurover` を適切な引数（`--model webots-python` 等）を付けて起動。
+3. **ブリッジ起動**: `mavproxy.py` を起動して GCS との通信パスを確立する。
+4. **GCS 起動**: `rover-gcs` を起動し、ブラウザで `localhost:5173` にアクセス。
 
 ---
 

@@ -278,6 +278,9 @@ docker compose -f docker-compose.prod.yml up --build -d
 - **デプロイ手順**: `docs/deploy.md` — 本番デプロイと Docker 構成の説明
 - **ハードウェア仕様**: `docs/hardware.md` — 実機のパーツ一覧と配線図
 - **システム仕様書**: `docs/SystemSpecifications.md` — 要求仕様・設計仕様のまとめ
+- **Webots シミュレーション**:
+  - [概要 (Summary)](docs/webots_summary.md): Webots と ArduPilot SITL 連携の概要
+  - [詳細ガイド (Setup Guide)](docs/webots_setup.md): インストールから詳細な設定・トラブル解消まで
 - **画像**: `docs/images/` — 実機写真やスクリーンショット
 
 ## 実機写真とスクリーンショット
