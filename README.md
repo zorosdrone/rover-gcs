@@ -181,12 +181,24 @@ Tools/environment_install/install-prereqs-ubuntu.sh -y
 
 #### 1. シミュレーター (SITL) の起動
 
+**通常モード (Map/Console表示)**
+
 ターミナルを開き、以下のスクリプトを実行します。
 ArduPilot の SITL が起動し、MAVProxy コンソールとマップが表示されます。
 
 ```bash
 ./start_sitl.sh
 ```
+
+**Webots 連携モード**
+
+Webots シミュレーターと連携させる場合は、以下のスクリプトを使用してください。
+（事前にスクリプト内の `WINDOWS_IP` を修正する必要があります。詳細は `docs/webots_setup.md` を参照）
+
+```bash
+./start_sitl4webots.sh
+```
+
 
 #### 2. アプリケーション (Backend + Frontend) の起動
 

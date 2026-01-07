@@ -112,27 +112,30 @@ Webots の `Pioneer3at`（または使用している Robot ノード）を以�
 
 ## 3. SITL と MAVProxy の起動 (WSL2)
 
-### ステップ 1: ArduRover SITL の起動
-ターミナル 1 で実行します。`-w` オプションはパラメータを初期化したい場合のみ使用してください。
+便利な起動スクリプト `start_sitl4webots.sh` を用意しました。これ一つで SITL と MAVProxy の両方が適切な設定で起動します。
+
+### ステップ 1: スクリプトの設定
+`start_sitl4webots.sh` をテキストエディタで開き、`WINDOWS_IP` 変数をお使いの環境に合わせて修正してください（手順1で確認したWindowsのIPアドレス）。
 
 ```bash
-# <Windows IP> は手順 1 で確認したものに置き換え
-/home/ardupilot/GitHub/ardupilot/build/sitl/bin/ardurover \
-  --model webots-python \
-  --sim-address 172.30.96.1 \
-  --sim-port-out 9002 \
-  --sim-port-in 9003
+# Windows側のIPアドレス (Webots実行マシン)
+WINDOWS_IP="172.30.96.1"  # <--- ここを修正
 ```
 
-### ステップ 2: MAVProxy ブリッジの起動
-ターミナル 2 で実行します。これにより Mission Planner などの外部 GCS が接続可能になります。
+### ステップ 2: 起動
+ターミナルでスクリプトを実行します。
 
 ```bash
-# --out には Windows IP を指定
-mavproxy.py --master=tcp:127.0.0.1:5760 \
-  --out=udp:172.30.96.1:14550 \
-  --out=udp:127.0.0.1:14552
+cd ~/rover-gcs
+chmod +x start_sitl4webots.sh
+./start_sitl4webots.sh
 ```
+
+スクリプトが実行されると以下の処理が自動的に行われます：
+1. ArduRover SITL バイナリの起動（Webots連携モード）
+2. パラメータファイル（`mav.parm`）の自動ロード
+3. MAVProxy の起動（WebUI用、GCS用ポートへの転送設定済み）
+
 
 ---
 
