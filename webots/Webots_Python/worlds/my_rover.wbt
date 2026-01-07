@@ -5,6 +5,7 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/road/protos/StraightRoadSegment.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/floors/protos/Floor.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/appearances/protos/Grass.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/containers/protos/WoodenBox.proto"
 
 WorldInfo {
   title "Pioneer3at Ardupilot"
@@ -12,8 +13,8 @@ WorldInfo {
   FPS 20
 }
 Viewpoint {
-  orientation 0.16709563690013424 0.7035934235891245 -0.6906774517899607 0.662370882174196
-  position 54.91818987947506 -1.2099746609247222 1.0166189733778546
+  orientation -0.1923971314155813 0.3318652285362947 0.9234981396362466 1.1211927254337009
+  position -104.9333176939222 -186.32641939151432 94.84083564561888
   follow "Pioneer 3-AT"
   followSmoothness 0.01
 }
@@ -26,6 +27,9 @@ Floor {
   appearance Grass {
   }
 }
+WoodenBox {
+  translation 1.73 1.46 0.3
+}
 StraightRoadSegment {
   translation -15 0.3 0.02
   rotation 0 0 1 0.105
@@ -35,11 +39,12 @@ StraightRoadSegment {
   length 140
 }
 Robot {
-  translation 55.85867289955622 -1.8838143334175885 -0.0001493082009083324
-  rotation -4.6410898153789375e-06 7.9068417794536e-05 -0.9999999968633227 0.03866196478919299
+  translation -0.7987104304834669 0.867171883033846 -0.00014930820090863772
+  rotation -2.590666731843016e-06 1.3504934764267149e-05 0.9999999999054525 0.22313531844163945
   children [
     Camera {
       translation 0 0 0.3
+      rotation 0 1 0 -3.5307179586219206e-05
       rotationStep 0.261798
       width 640
       height 480
@@ -147,7 +152,7 @@ Robot {
     }
     DEF BACK_LEFT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position -40314.46230000527
+        position -40314.46229869665
         axis 0 1 0
         anchor -0.1331 0.197 0.11
       }
@@ -163,7 +168,7 @@ Robot {
       ]
       endPoint Solid {
         translation -0.1331 0.197 0.11
-        rotation 0.7070818440411338 -0.7070745682746913 -0.00899003484691744 3.1236180688167434
+        rotation 0.7070818410988737 -0.7070745653340366 -0.008990497534086643 3.1236171435266913
         children [
           DEF RIM_AND_TIRE_SHAPES Group {
             children [
@@ -306,6 +311,8 @@ Robot {
           density -1
           mass 0.8
         }
+        linearVelocity 1.5153715704392936e-14 7.635344807872612e-15 1.9850817600076713e-15
+        angularVelocity 2.6835996072150235e-14 -1.2054938775671637e-13 -5.616846209841659e-14
       }
     }
     Pose {
@@ -340,7 +347,7 @@ Robot {
     }
     DEF BACK_RIGHT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position -42247.88133038212
+        position -42247.881329321855
         axis 0 1 0
         anchor -0.1331 -0.197 0.11
       }
@@ -356,7 +363,7 @@ Robot {
       ]
       endPoint Solid {
         translation -0.1331 -0.197 0.11
-        rotation 0.5212526249791798 -0.5212495395937531 -0.6757178541563149 1.953119355200599
+        rotation 0.5212523640866193 -0.5212492787052592 -0.6757182566597987 1.9531188025369879
         children [
           USE RIM_AND_TIRE_SHAPES
           DEF RIGHT_CAP_AND_VALVE_SHAPES Group {
@@ -403,11 +410,13 @@ Robot {
         name "back right wheel"
         boundingObject USE BOUNDING_WHEEL
         physics USE WHEEL_PHYSICS
+        linearVelocity -1.3442409811059616e-14 -2.2970428425317362e-14 2.0206120494031115e-15
+        angularVelocity -1.1516387311134473e-14 1.5202995419265208e-13 -1.7487906085378613e-14
       }
     }
     DEF FRONT_LEFT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 575.7534027096675
+        position 575.7534052604226
         axis 0 1 0
         anchor 0.1331 0.197 0.11
       }
@@ -423,7 +432,7 @@ Robot {
       ]
       endPoint Solid {
         translation 0.1331 0.197 0.11
-        rotation 0.6827106718517262 -0.6827027305560847 0.260428723897789 3.6511311550128003
+        rotation 0.6827108491876164 -0.6827029078933028 0.2604277941302589 3.6511294136051204
         children [
           USE RIM_AND_TIRE_SHAPES
           USE LEFT_CAP_AND_VALVE_SHAPES
@@ -431,11 +440,13 @@ Robot {
         name "front left wheel"
         boundingObject USE BOUNDING_WHEEL
         physics USE WHEEL_PHYSICS
+        linearVelocity -2.2308419605154003e-14 4.14616141949476e-14 -2.9487533388627665e-15
+        angularVelocity -3.51167597315366e-14 7.414520212432152e-14 2.6717305169218286e-14
       }
     }
     DEF FRONT_RIGHT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 1802.189041013049
+        position 1802.189043281336
         axis 0 1 0
         anchor 0.1331 -0.197 0.11
       }
@@ -451,7 +462,7 @@ Robot {
       ]
       endPoint Solid {
         translation 0.1331 -0.197 0.11
-        rotation -0.6965058702673238 0.696499260648185 0.17253507643285088 3.483290567289072
+        rotation -0.6965057695124978 0.6964991598971699 0.1725358898847998 3.483292147149062
         children [
           USE RIM_AND_TIRE_SHAPES
           USE RIGHT_CAP_AND_VALVE_SHAPES
@@ -459,6 +470,8 @@ Robot {
         name "front right wheel"
         boundingObject USE BOUNDING_WHEEL
         physics USE WHEEL_PHYSICS
+        linearVelocity 1.7194576635981543e-14 -2.520537054421064e-14 6.128772098244234e-16
+        angularVelocity 1.467778420749675e-14 -1.3771291715789433e-13 -9.144668250800558e-16
       }
     }
     DEF SO_0 DistanceSensor {
@@ -2526,8 +2539,10 @@ Robot {
     "1"
     "--sitl-address"
     "172.30.98.2"
+    "--camera"
+    "camera"
   ]
   supervisor TRUE
-  linearVelocity -3.503484356578331e-13 2.7608731462333577e-14 8.881784197001252e-16
-  angularVelocity -5.527503710602713e-15 1.1128794319245348e-15 -7.631129348211371e-15
+  linearVelocity -6.1668754203494525e-15 -1.6236217261745082e-14 -2.887387298952407e-15
+  angularVelocity -6.069357866549022e-17 2.293228600272868e-15 -3.691168023628246e-15
 }

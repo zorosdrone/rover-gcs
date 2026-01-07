@@ -236,25 +236,53 @@ class WebotsArduVehicle():
                            gps_pos[0], -gps_pos[1], -gps_pos[2])
 
     def _handle_controls(self, command: tuple):
-        """ローバー(スキッドステア)用に信号を正しく配分する修正版"""
+        """
+        RC1(ステアリング)とRC3(スロットル)を受け取り、
+        Webots側でスキッドステア用にミキシングするハンドル操作モード
+        """
         
-        # ArduPilotの信号を抽出 (1番目=左, 3番目=右)
-        # 信号が届いていない(-1)場合は 0.5(停止)とみなす
-        left_raw = command[0] if command[0] != -1 else 0.5
-        right_raw = command[2] if command[2] != -1 else 0.5
+        # --- 1. 信号の取得 (ArduPilotからの出力 0.0〜1.0) ---
+        # command[0] = Servo 1 (Steering)
+        # command[2] = Servo 3 (Throttle)
+        
+        # 信号が来ていない(-1)場合は 0.5(中央/停止) とする
+        raw_steering = command[0] if command[0] != -1 else 0.5
+        raw_throttle = command[2] if command[2] != -1 else 0.5
 
-        # 0.0〜1.0 を -1.0〜1.0 に変換
-        left_val = left_raw * 2 - 1
-        right_val = right_raw * 2 - 1
+        # --- 2. -1.0 〜 +1.0 の範囲に正規化 ---
+        # ステアリング: 左=-1.0, 右=+1.0
+        steer_val = raw_steering * 2 - 1
+        
+        # スロットル: 後進=-1.0, 前進=+1.0
+        throttle_val = raw_throttle * 2 - 1
 
-        # 4つの車輪へ分配 [front_left, back_left, front_right, back_right]
-        # あなたの controllerArgs の順番に合わせます
-        final_commands = [left_val, left_val, right_val, right_val]
+        # --- 3. ミキシング計算 (Arcade Drive方式) ---
+        # 左タイヤ = 前進成分 + 旋回成分
+        # 右タイヤ = 前進成分 - 旋回成分
+        # ※直進したいのに曲がってしまう場合は + と - を逆にしてください
+        left_motor_speed = throttle_val + steer_val
+        right_motor_speed = throttle_val - steer_val
 
-        # モーターへ出力
+        # --- 4. 速度制限とクリッピング (-1.0〜1.0に収める) ---
+        left_motor_speed = max(min(left_motor_speed, 1.0), -1.0)
+        right_motor_speed = max(min(right_motor_speed, 1.0), -1.0)
+
+        # --- 5. モーターへの出力 ---
+        # Pioneer 3-ATは4輪駆動。左2つ、右2つに分配
+        # motors配列順序: [front_left, back_left, front_right, back_right] と想定
+        
+        # 最大速度設定 (rad/s)
+        MAX_VELOCITY = min(self._motors[0].getMaxVelocity(), self.motor_velocity_cap)
+
+        final_speeds = [
+            left_motor_speed * MAX_VELOCITY,  # Front Left
+            left_motor_speed * MAX_VELOCITY,  # Back Left
+            right_motor_speed * MAX_VELOCITY, # Front Right
+            right_motor_speed * MAX_VELOCITY  # Back Right
+        ]
+
         for i, m in enumerate(self._motors):
-            # 速度上限を 10 程度に制限することを推奨 (100は速すぎます)
-            m.setVelocity(final_commands[i] * min(m.getMaxVelocity(), self.motor_velocity_cap))
+            m.setVelocity(final_speeds[i])
 
     def _handle_image_stream(self, camera: Union[Camera, RangeFinder], port: int):
         """Stream grayscale images over TCP

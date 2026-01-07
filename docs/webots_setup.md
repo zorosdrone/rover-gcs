@@ -58,25 +58,55 @@ Webots の `Pioneer3at`（または使用している Robot ノード）を以�
    * **`basicTimeStep`**: `20` 程度を推奨。
 
 ### コントローラーの修正 (`webots_vehicle.py`)
-「disarmedなのにバックする」「1 motors 警告」の根本原因（データの受信・解釈ミス）を修正します。`_handle_controls` メソッドを以下のように更新し、ArduPilot の出力を**スキッドステア（1ch:左, 3ch:右）**として正しくマッピングします。
+「disarmedなのにバックする」「1 motors 警告」の根本原因を修正しつつ、一般的なプロポ操作（右スティック縦でスロットル、横でステア）に対応させます。`_handle_controls` メソッドを以下のように更新し、ArduPilot からの **RC1(Steer)** と **RC3(Throttle)** を Webots 側で左右のタイヤ出力にミキシングします。
 
 ```python
-def _handle_controls(self, command: tuple):
-    # 信号の正規化（未受信 -1 を 0.5:停止 に置換）
-    cmd_list = [v if v != -1 else 0.5 for v in command]
+    def _handle_controls(self, command: tuple):
+        """
+        RC1(ステアリング)とRC3(スロットル)を受け取り、
+        Webots側でスキッドステア用にミキシングするハンドル操作モード
+        """
+        
+        # --- 1. 信号の取得 (ArduPilotからの出力 0.0〜1.0) ---
+        # command[0] = Servo 1 (Steering)
+        # command[2] = Servo 3 (Throttle)
+        
+        # 信号が来ていない(-1)場合は 0.5(中央/停止) とする
+        raw_steering = command[0] if command[0] != -1 else 0.5
+        raw_throttle = command[2] if command[2] != -1 else 0.5
 
-    # スキッドステア用マッピング (Index 0:左, Index 2:右)
-    left_val = cmd_list[0] * 2 - 1
-    right_val = cmd_list[2] * 2 - 1
+        # --- 2. -1.0 〜 +1.0 の範囲に正規化 ---
+        # ステアリング: 左=-1.0, 右=+1.0
+        steer_val = raw_steering * 2 - 1
+        
+        # スロットル: 後進=-1.0, 前進=+1.0
+        throttle_val = raw_throttle * 2 - 1
 
-    # 4輪への分配 [front_left, back_left, front_right, back_right]
-    final_commands = [left_val, left_val, right_val, right_val]
+        # --- 3. ミキシング計算 (Arcade Drive方式) ---
+        # 左タイヤ = 前進成分 + 旋回成分
+        # 右タイヤ = 前進成分 - 旋回成分
+        left_motor_speed = throttle_val + steer_val
+        right_motor_speed = throttle_val - steer_val
 
-    for i, m in enumerate(self._motors):
-        # 物理破綻を防ぐため速度上限(motor_velocity_cap)を適用
-        m.setVelocity(final_commands[i] * min(m.getMaxVelocity(), self.motor_velocity_cap))
+        # --- 4. 速度制限とクリッピング (-1.0〜1.0に収める) ---
+        left_motor_speed = max(min(left_motor_speed, 1.0), -1.0)
+        right_motor_speed = max(min(right_motor_speed, 1.0), -1.0)
+
+        # --- 5. モーターへの出力 ---
+        # Pioneer 3-ATは4輪駆動。左2つ、右2つに分配
+        MAX_VELOCITY = min(self._motors[0].getMaxVelocity(), self.motor_velocity_cap)
+
+        final_speeds = [
+            left_motor_speed * MAX_VELOCITY,  # Front Left
+            left_motor_speed * MAX_VELOCITY,  # Back Left
+            right_motor_speed * MAX_VELOCITY, # Front Right
+            right_motor_speed * MAX_VELOCITY  # Back Right
+        ]
+
+        for i, m in enumerate(self._motors):
+            m.setVelocity(final_speeds[i])
 ```
-* **ポイント**: データ未受信（-1 や 0）を「停止信号（0.5）」として扱うことで、負の値（-1.0 = フルバック）への誤変換を防止します。
+* **ポイント**: データ未受信（-1 や 0）を「停止信号（0.5）」として扱うことで、負の値（-1.0 = フルバック）への誤変換を防止します。また ArduPilot 側はシンプルな GroundSteering 設定にする必要があります。
 
 ---
 
@@ -87,10 +117,10 @@ def _handle_controls(self, command: tuple):
 
 ```bash
 # <Windows IP> は手順 1 で確認したものに置き換え
-/home/ardupilot/GitHub/ardupilot/build/sitl/bin/ardurover 
-  --model webots-python 
-  --sim-address 172.30.96.1 
-  --sim-port-out 9002 
+/home/ardupilot/GitHub/ardupilot/build/sitl/bin/ardurover \
+  --model webots-python \
+  --sim-address 172.30.96.1 \
+  --sim-port-out 9002 \
   --sim-port-in 9003
 ```
 
@@ -113,8 +143,8 @@ ArduPilot 側を Rover（スキッドステア）仕様に固定するための�
 | カテゴリ | パラメータ名 | 設定値 | 理由 |
 | :--- | :--- | :--- | :--- |
 | 機体構成 | **FRAME_CLASS** | 1 | Rover (スキッドステア) に設定 |
-| 出力割当 | **SERVO1_FUNCTION** | 73 | 1ch を左モーター出力に設定 |
-| 出力割当 | **SERVO3_FUNCTION** | 74 | 3ch を右モーター出力に設定 |
+| 出力割当 | **SERVO1_FUNCTION** | 26 | 1ch を GroundSteering (ハンドル) に設定 |
+| 出力割当 | **SERVO3_FUNCTION** | 70 | 3ch を Throttle (アクセル) に設定 |
 | 安全解除 | **ARMING_SKIPCHK** | 65535 | 3D Accel 校正エラー等のチェックをスキップ |
 | 停止維持 | **MOT_SAFE_DISARM** | 1 | DISARMED 時に出力を 0 (停止) に強制固定 |
 | 制御抑制 | **ATC_SPEED_I** | 0 | 静止中の積分値蓄積による暴走を防止 |
