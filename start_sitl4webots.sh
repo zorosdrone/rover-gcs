@@ -21,7 +21,6 @@ echo "Starting SITL binary..."
     --sim-address $WINDOWS_IP \
     --sim-port-out 9002 \
     --sim-port-in 9003 \
-    # --defaults ~/rover-gcs/mav.parm \
     > /dev/null 2>&1 &
 
 SITL_PID=$!
