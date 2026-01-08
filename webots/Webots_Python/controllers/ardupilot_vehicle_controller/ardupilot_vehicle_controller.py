@@ -125,4 +125,5 @@ if __name__ == "__main__":
     # ...
 
     while vehicle.webots_connected():
-        time.sleep(1)
+        vehicle.update_gui()
+        time.sleep(0.01)

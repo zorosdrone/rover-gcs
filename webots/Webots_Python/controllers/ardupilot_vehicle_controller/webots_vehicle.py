@@ -11,6 +11,10 @@ import time
 import socket
 import select
 import struct
+try:
+    import cv2
+except ImportError:
+    cv2 = None
 import numpy as np
 from threading import Thread
 from typing import List, Union
@@ -118,7 +122,11 @@ class WebotsArduVehicle():
         # init camera
         if camera_name is not None:
             self.camera = self.robot.getDevice(camera_name)
-            self.camera.enable(1000//camera_fps) # takes frame period in ms
+            if self.camera is not None:
+                self.camera.enable(1000//camera_fps) # takes frame period in ms
+                print(f"Camera '{camera_name}' found and enabled.")
+            else:
+                print(f"Warning: Camera '{camera_name}' not found!")
 
             # start camera streaming thread if requested
             if camera_stream_port is not None:
@@ -359,6 +367,25 @@ class WebotsArduVehicle():
                 conn.close()
                 print(f"Camera client disconnected (I{self._instance})")
 
+    def webots_connected(self) -> bool:
+        """Check if Webots client is connected"""
+        return self._webots_connected
+
+    def update_gui(self):
+        """Update OpenCV GUI windows in the main thread"""
+        if cv2 is None:
+            return
+
+        if hasattr(self, 'camera') and self.camera is not None:
+            try:
+                img = self.get_camera_image()
+                if img is not None:
+                    # Webots getImage() returns BGR order, so show it directly
+                    cv2.imshow("Webots_Camera_View", img)
+                    cv2.waitKey(1)
+            except Exception as e:
+                print(f"GUI Update Error: {e}")
+
     def get_camera_gray_image(self) -> np.ndarray:
         """Get the grayscale image from the camera as a numpy array of bytes"""
         img = self.get_camera_image()
@@ -368,6 +395,8 @@ class WebotsArduVehicle():
     def get_camera_image(self) -> np.ndarray:
         """Get the RGB image from the camera as a numpy array of bytes"""
         img = self.camera.getImage()
+        if img is None:
+            return None
         img = np.frombuffer(img, np.uint8).reshape((self.camera.getHeight(), self.camera.getWidth(), 4))
         return img[:, :, :3] # RGB only, no Alpha
 
@@ -402,7 +431,3 @@ class WebotsArduVehicle():
         for m in self._motors:
             m.setPosition(float('inf'))
             m.setVelocity(0)
-
-    def webots_connected(self) -> bool:
-        """Check if Webots client is connected"""
-        return self._webots_connected

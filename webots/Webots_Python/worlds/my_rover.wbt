@@ -6,6 +6,7 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/objects/floors/protos/Floor.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023a/projects/appearances/protos/Grass.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/containers/protos/WoodenBox.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/humans/pedestrian/protos/Pedestrian.proto"
 
 WorldInfo {
   title "Pioneer3at Ardupilot"
@@ -13,8 +14,8 @@ WorldInfo {
   FPS 20
 }
 Viewpoint {
-  orientation 0.06941450929609198 0.16208863424955514 -0.9843317024998722 0.8206923832835283
-  position -1.844944439222396 9.033508032070845 1.4198840546389893
+  orientation -0.05032315185997297 -0.04731277209335472 0.9976116889770891 4.648412841119724
+  position -0.313579518719565 14.037399655363421 1.7529877425685387
   follow "Pioneer 3-AT"
   followSmoothness 0.01
 }
@@ -39,12 +40,12 @@ StraightRoadSegment {
   length 140
 }
 Robot {
-  translation -0.02272008889572573 6.203113451487011 -0.00014930820198791328
-  rotation 1.5233534214605996e-06 1.3842713645992493e-06 -0.9999999999978817 1.6707454330303693
+  translation -1.9973100612972055 7.792880867586271 -0.00014930820229230868
+  rotation -1.5465947663140684e-06 -2.758419302353952e-06 0.9999999999949997 -1.0073981692317506
   children [
     Camera {
-      translation 0 0 0.3
-      rotation 0 1 0 -3.5307179586219206e-05
+      translation 0.155 0.00866012 0.3
+      rotation 0 0 -1 0
       rotationStep 0.261798
       width 640
       height 480
@@ -152,7 +153,7 @@ Robot {
     }
     DEF BACK_LEFT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position -39662.232688393466
+        position -39228.94273562001
         axis 0 1 0
         anchor -0.1331 0.197 0.11
       }
@@ -168,7 +169,7 @@ Robot {
       ]
       endPoint Solid {
         translation -0.1331 0.197 0.11
-        rotation 0.6370270420167268 -0.6370189815875331 0.4340545643540701 3.9606185148531043
+        rotation -0.5999015768471607 0.5998935754530146 -0.5293824668672815 2.1678453130128603
         children [
           DEF RIM_AND_TIRE_SHAPES Group {
             children [
@@ -311,8 +312,8 @@ Robot {
           density -1
           mass 0.8
         }
-        linearVelocity 3.5351401305546407e-15 1.5483085735248332e-13 2.0911166235517663e-15
-        angularVelocity 1.2355409747410886e-13 -1.4102318935925174e-14 -3.0170492915931114e-15
+        linearVelocity 5.1732930290214884e-14 -2.734378501813395e-13 -4.288638608898795e-15
+        angularVelocity 1.6496923335340258e-13 1.0466297704895095e-13 -3.9425221661780725e-14
       }
     }
     Pose {
@@ -347,7 +348,7 @@ Robot {
     }
     DEF BACK_RIGHT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position -41594.211500897
+        position -41155.06238424322
         axis 0 1 0
         anchor -0.1331 -0.197 0.11
       }
@@ -363,7 +364,7 @@ Robot {
       ]
       endPoint Solid {
         translation -0.1331 -0.197 0.11
-        rotation 0.4619080833636942 -0.461905888484439 -0.7571551179954339 1.845475240538845
+        rotation 0.6119460838806802 -0.6119414666048786 -0.5010485324522664 2.2126320953697998
         children [
           USE RIM_AND_TIRE_SHAPES
           DEF RIGHT_CAP_AND_VALVE_SHAPES Group {
@@ -410,13 +411,13 @@ Robot {
         name "back right wheel"
         boundingObject USE BOUNDING_WHEEL
         physics USE WHEEL_PHYSICS
-        linearVelocity 5.246094486277774e-15 1.922269833440993e-13 1.9721179141798933e-15
-        angularVelocity 1.06795030544582e-13 -1.2409954735580261e-14 1.1274145038392021e-15
+        linearVelocity 6.115777292934993e-14 -1.1496266053235969e-13 1.4478154164541372e-15
+        angularVelocity 8.242457419233984e-14 6.927297492928914e-14 -3.9427297451582595e-14
       }
     }
     DEF FRONT_LEFT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 1228.1356793542918
+        position 1661.447880129726
         axis 0 1 0
         anchor 0.1331 0.197 0.11
       }
@@ -432,7 +433,7 @@ Robot {
       ]
       endPoint Solid {
         translation 0.1331 0.197 0.11
-        rotation 0.5284457826897069 -0.5284380597474849 0.6644533631247395 4.314523125632812
+        rotation -0.46799140769765546 0.4679840193482458 -0.7496499182657379 1.8550464941141902
         children [
           USE RIM_AND_TIRE_SHAPES
           USE LEFT_CAP_AND_VALVE_SHAPES
@@ -440,13 +441,13 @@ Robot {
         name "front left wheel"
         boundingObject USE BOUNDING_WHEEL
         physics USE WHEEL_PHYSICS
-        linearVelocity -6.418343759200523e-15 -2.0000361375029962e-13 -1.7886560998187983e-15
-        angularVelocity 1.236298819882348e-13 -1.3857012302028906e-14 -2.564730599396364e-16
+        linearVelocity -1.8586177159050517e-14 1.8343173580510223e-13 -1.427240527615008e-15
+        angularVelocity -3.496568970248374e-14 -6.294124555286802e-15 -5.600438465730782e-14
       }
     }
     DEF FRONT_RIGHT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 2455.812519538705
+        position 2894.986308761354
         axis 0 1 0
         anchor 0.1331 -0.197 0.11
       }
@@ -462,7 +463,7 @@ Robot {
       ]
       endPoint Solid {
         translation 0.1331 -0.197 0.11
-        rotation -0.6873724142743942 0.6873661104324774 0.23462095883257744 3.6024890730456303
+        rotation -0.7071071006912727 0.7070998045006842 0.00306832642922274 3.147724408483039
         children [
           USE RIM_AND_TIRE_SHAPES
           USE RIGHT_CAP_AND_VALVE_SHAPES
@@ -470,8 +471,8 @@ Robot {
         name "front right wheel"
         boundingObject USE BOUNDING_WHEEL
         physics USE WHEEL_PHYSICS
-        linearVelocity -6.163199513238678e-15 -1.7858387691020714e-13 -1.7594572861141314e-15
-        angularVelocity -7.892149312144136e-14 5.786219348564378e-15 5.27076992371999e-15
+        linearVelocity -8.71099794165791e-14 1.9739333566401754e-13 4.080438515094707e-15
+        angularVelocity -1.6531129054360058e-13 -9.530486744290749e-14 -3.390115062467099e-14
       }
     }
     DEF SO_0 DistanceSensor {
@@ -2532,7 +2533,7 @@ Robot {
     "--motors"
     "front left wheel, back left wheel, front right wheel, back right wheel"
     "--camera-fps"
-    "50"
+    "10"
     "--motor-cap"
     "100"
     "--bidirectional-motors"
@@ -2543,6 +2544,53 @@ Robot {
     "camera"
   ]
   supervisor TRUE
-  linearVelocity -3.1299821390551223e-16 5.80534466040825e-14 3.3460103374884716e-15
-  angularVelocity 5.766062924924116e-16 -5.077220948876055e-16 -5.0215187660011023e-14
+  linearVelocity 3.479268611455182e-14 1.088545033441463e-13 -3.3234021595324685e-15
+  angularVelocity -1.2790308915063955e-14 1.1281260572001319e-15 -3.960272637719028e-14
+}
+Pedestrian {
+  hidden translation_2 0.08050896952412635 5.551115123125783e-17 0.022643714083752486
+  hidden rotation_2 0 -1 0 0.44318181818176977
+  hidden translation_3 0.0032777366595363247 1.3877787807814457e-16 -0.001529453999493044
+  hidden rotation_3 0 1 0 0.0367272727272376
+  hidden translation_4 -0.016038676886723988 8.326672684688674e-17 0.0011677090289426983
+  hidden rotation_4 0 -1 0 0.043272727272721405
+  hidden translation_5 -0.10370491890146045 -1.1102230246251565e-16 0.024411992663506243
+  hidden rotation_5 0 1 0 0.567545454545424
+  hidden translation_6 -0.030377215769961344 -1.1102230246251565e-16 0.00801735572673909
+  hidden rotation_6 0 -1 0 0.3203636363636527
+  hidden translation_7 -0.09902698046401492 0 -0.003905004441933535
+  hidden rotation_7 0 -1 0 0.2674545454545488
+  hidden translation_8 -0.10462261174563953 2.7755575615628914e-17 -0.004324640777807975
+  hidden rotation_8 0 -1 0 0.34772727272728926
+  hidden translation_9 0.6102021709691864 5.551115123125783e-17 -0.3493405543685372
+  hidden rotation_9 0 0.9999999999999999 0 0.9610000000000177
+  hidden translation_10 -0.06981117818119226 2.7755575615628914e-17 0.0034163026020705978
+  hidden rotation_10 0 -1 0 0.05981818181818208
+  hidden translation_11 0.07917753764204358 2.7755575615628914e-17 -0.021797349901947705
+  hidden rotation_11 0 1 0 0.27218181818182713
+  hidden translation_12 -0.5549902983415158 2.7755575615628914e-17 -0.2096499417213744
+  hidden rotation_12 0 -1 0 0.8012727272726897
+  hidden translation_13 0.20646682439938743 0 -0.03512985049920658
+  hidden rotation_13 0 1 0 0.17945454545457304
+  hidden translation_14 0.03178415803395853 0 0.0005064947001754416
+  hidden rotation_14 0 -1 0 0.08590909090907832
+  translation -2.1259999999999764 0 1.3270909090909118
+  controllerArgs [
+    "--trajectory"
+    "3 0, -3 0"
+  ]
+  enableBoundingObject TRUE
+  rightLegAngle 0.17127272727273518
+  rightLowerLegAngle 0.05981818181819108
+  rightFootAngle 0.17945454545457323
+  leftLegAngle -0.97390909090911
+  leftLowerLegAngle 1.635545454545463
+  leftFootAngle 0.010181818181808924
+  rightArmAngle -0.05645454545458049
+  rightLowerArmAngle -0.4196363636363821
+  rightHandAngle -0.20418181818182346
+  leftArmAngle 0.16190909090913919
+  leftLowerArmAngle -0.39072727272730845
+  leftHandAngle 0.051272727272735207
+  headAngle 0.051545454545448594
 }
