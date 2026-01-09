@@ -1,0 +1,7 @@
+コマンドメモ
+
+■MavProxy 
+link add 0.0.0.0:14551
+link remove 1
+
+■ログ

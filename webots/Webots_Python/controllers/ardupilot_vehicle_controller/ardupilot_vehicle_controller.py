@@ -81,6 +81,11 @@ def get_args():
                         help="Port to stream grayscale rangefinder images to. "
                              "If no port is supplied the rangefinder will not be streamed.")
 
+    parser.add_argument("--sonar",
+                        type=str,
+                        default=None,
+                        help="Webots DistanceSensor name for front sonar (optional)")
+
     parser.add_argument("--instance", "-i",
                         type=int,
                         default=0,
@@ -115,6 +120,7 @@ if __name__ == "__main__":
                                 rangefinder_name=args.rangefinder,
                                 rangefinder_fps=args.rangefinder_fps,
                                 rangefinder_stream_port=args.rangefinder_port,
+                                sonar_name=args.sonar,
                                 instance=args.instance,
                                 motor_velocity_cap=args.motor_cap,
                                 bidirectional_motors=args.bidirectional_motors,

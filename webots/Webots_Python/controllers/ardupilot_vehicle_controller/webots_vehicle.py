@@ -6,6 +6,8 @@ AP_FLAKE8_CLEAN
 
 # Imports
 import os
+os.environ['MAVLINK20'] = '1'  # 必ず import mavutil より前に書く
+from pymavlink import mavutil
 import sys
 import time
 import socket
@@ -18,6 +20,10 @@ except ImportError:
 import numpy as np
 from threading import Thread
 from typing import List, Union
+# try:
+#     from pymavlink import mavutil
+# except ImportError:
+#     mavutil = None
 
 # Here we set up environment variables so we can run this script
 # as an external controller outside of Webots (useful for debugging)
@@ -62,6 +68,7 @@ class WebotsArduVehicle():
                  rangefinder_name: str = None,
                  rangefinder_fps: int = 10,
                  rangefinder_stream_port: int = None,
+                 sonar_name: str = None,
                  instance: int = 0,
                  motor_velocity_cap: float = float('inf'),
                  reversed_motors: List[int] = None,
@@ -147,6 +154,44 @@ class WebotsArduVehicle():
                                                   args=[self.rangefinder, rangefinder_stream_port])
                 self._rangefinder_thread.start()
 
+        # init sonar (DistanceSensor) if requested
+        self.sonar = None
+        if sonar_name is not None:
+            try:
+                self.sonar = self.robot.getDevice(sonar_name)
+                if self.sonar is not None:
+                    self.sonar.enable(self._timestep)
+                    print(f"Sonar '{sonar_name}' found and enabled.")
+                else:
+                    print(f"Warning: Sonar '{sonar_name}' not found!")
+            except Exception:
+                self.sonar = None
+
+        # init MAVLink connection for distance sensor reporting (optional)
+        # Attempt to open an outbound MAVLink UDP port to localhost:14550
+        if mavutil:
+            try:
+                # use udpout so we push packets to local SITL (or MAVProxy)
+                # send as System ID 1 and component 154 (distance sensor/laser array)
+                self.mav_link = mavutil.mavlink_connection(
+                    f'udpout:{sitl_address}:14551',
+                    source_system=255,
+                    source_component=158
+                )
+                print(f"[webots_vehicle] MAVLink connection established on udpout:{sitl_address}:14551 (sys=255 comp=158)")
+                
+            except Exception as e:
+                print(f"[webots_vehicle] Warning: Could not establish MAVLink connection: {e}")
+                self.mav_link = None
+        else:
+            self.mav_link = None
+
+        # init step counter for throttling MAVLink sends (10 steps = ~50Hz at 500Hz sim)
+        self._step_counter = 0
+        
+        # init boot time for MAVLink timestamp
+        self._start_time = time.monotonic()
+
         # init motors (and setup velocity control)
         self._motors = [self.robot.getDevice(n) for n in motor_names]
         for m in self._motors:
@@ -156,6 +201,10 @@ class WebotsArduVehicle():
         # start ArduPilot SITL communication thread
         self._sitl_thread = Thread(daemon=True, target=self._handle_sitl, args=[sitl_address, 9002+10*instance])
         self._sitl_thread.start()
+
+    def get_time_boot_ms(self):
+        """Get time since boot in milliseconds (uint32)"""
+        return int((time.monotonic() - self._start_time) * 1000) & 0xFFFFFFFF
 
     def _handle_sitl(self, sitl_address: str = "127.0.0.1", port: int = 9002):
         """Handles all communications with the ArduPilot SITL
@@ -206,6 +255,17 @@ class WebotsArduVehicle():
                 step_success = self.robot.step(self._timestep)
                 if step_success == -1: # webots closed
                     break
+                
+                # send rangefinder center distance to ArduPilot via MAVLink (if available)
+                # throttle to 10 steps (reduces send frequency to ~50Hz at 500Hz sim rate)
+                self._step_counter += 1
+                if self._step_counter % 30 == 0:
+                    try:
+                        if step_success != -1 and hasattr(self, 'send_mavlink_distance'):
+                            self.send_mavlink_distance()
+                    except Exception:
+                        # avoid spamming errors from MAVLink send
+                        pass
 
         # if we leave the main loop then Webots must have closed
         s.close()
@@ -371,20 +431,40 @@ class WebotsArduVehicle():
         """Check if Webots client is connected"""
         return self._webots_connected
 
-    def update_gui(self):
-        """Update OpenCV GUI windows in the main thread"""
-        if cv2 is None:
-            return
+    # def update_gui(self):
+    #     """Update OpenCV GUI windows in the main thread"""
+    #     if cv2 is None:
+    #         return
 
-        if hasattr(self, 'camera') and self.camera is not None:
-            try:
+    #     if hasattr(self, 'camera') and self.camera is not None:
+    #         try:
+    #             img = self.get_camera_image()
+    #             if img is not None:
+    #                 # Webots getImage() returns BGR order, so show it directly
+    #                 cv2.imshow("Webots_Camera_View", img)
+    #                 cv2.waitKey(1)
+    #         except Exception as e:
+    #             print(f"GUI Update Error: {e}")
+    def update_gui(self):
+        if not self.webots_connected(): return
+        
+        try:
+            # カメラ映像の取得。まだ準備ができていない場合はスキップするようにします
+            if hasattr(self, 'camera') and self.camera:
                 img = self.get_camera_image()
                 if img is not None:
-                    # Webots getImage() returns BGR order, so show it directly
-                    cv2.imshow("Webots_Camera_View", img)
-                    cv2.waitKey(1)
-            except Exception as e:
-                print(f"GUI Update Error: {e}")
+                    cv2.imshow("Webots_Camera_View", cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+            
+            # ソナーやレンジファインダーも同様
+            if hasattr(self, 'sonar') and self.sonar:
+                # ここでデータ取得と送信が行われることを確認
+                pass
+
+            cv2.waitKey(1)
+        except Exception as e:
+            # エラーが出ても無視して次に進む
+            print(f"GUI Update skip: {e}")
+
 
     def get_camera_gray_image(self) -> np.ndarray:
         """Get the grayscale image from the camera as a numpy array of bytes"""
@@ -431,3 +511,74 @@ class WebotsArduVehicle():
         for m in self._motors:
             m.setPosition(float('inf'))
             m.setVelocity(0)
+
+    def send_mavlink_distance(self):
+        """Send the center pixel distance from the RangeFinder to ArduPilot via MAVLink.
+
+        This reads the RangeFinder image buffer, extracts the center pixel value (meters),
+        converts to centimeters and sends a MAVLink DISTANCE_SENSOR message on the
+        outbound MAVLink connection opened in __init__ (udpout:localhost:14550).
+        """
+        if not (hasattr(self, 'mav_link') and self.mav_link):
+            return
+
+        try:
+            # Prefer simple DistanceSensor (sonar) if available
+            if hasattr(self, 'sonar') and self.sonar is not None:
+                try:
+                    distance_m = float(self.sonar.getValue())
+                except Exception:
+                    return
+
+                # get range limits from device if available, else set defaults
+                try:
+                    min_r = self.sonar.getMinRange()
+                    max_r = self.sonar.getMaxRange()
+                except Exception:
+                    min_r = 0.2
+                    max_r = 5.0
+
+                if distance_m == float('inf') or distance_m != distance_m:
+                    distance_m = max_r
+
+                if distance_m > max_r:
+                    distance_m = max_r
+
+                min_cm = int(min_r * 100)
+                max_cm = int(max_r * 100)
+                current_cm = int(distance_m * 100)
+         
+
+            # Send MAVLink DISTANCE_SENSOR
+            try:
+                # send a short heartbeat so ArduPilot recognizes this source
+                try:
+                    self.mav_link.mav.heartbeat_send(
+                        mavutil.mavlink.MAV_TYPE_GCS,
+                        mavutil.mavlink.MAV_AUTOPILOT_INVALID,
+                        0, 0, 0
+                    )
+                except Exception:
+                    pass
+                
+                # Test: Send fixed 100cm (1m) to verify in Mission Planner
+                current_cm = 100
+                
+                self.mav_link.mav.distance_sensor_send(
+                    self.get_time_boot_ms(),  # time_boot_ms - dynamic timestamp
+                    min_cm,           # min_distance (cm)
+                    max_cm,           # max_distance (cm)
+                    current_cm,       # current_distance (cm)
+                    mavutil.mavlink.MAV_DISTANCE_SENSOR_LASER,
+                    0,                # sensor id
+                    mavutil.mavlink.MAV_SENSOR_ROTATION_NONE,
+                    0                 # covariance
+                )
+                # ↓ 成功したか確認するためのプリント文
+                print(f"[Debug 1] OK: Sent {current_cm} cm to 14551") 
+            except Exception as e:
+                # ↓ エラーがあれば表示する
+                print(f"[MAVLink Send Error] {e}")
+            
+        except Exception:
+            return

@@ -1,3 +1,4 @@
+.github/
 # --- Python (Backend) ---
 backend/venv/
 backend/__pycache__/
