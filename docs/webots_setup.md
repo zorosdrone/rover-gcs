@@ -141,12 +141,12 @@ chmod +x start_sitl4webots.sh
 
 ## 4. パラメータ設定と保存
 
-ArduPilot 側を Rover（スキッドステア）仕様に固定するための設定です。Mission Planner または MAVProxy で設定してください。
+実機（CC-02 前輪ハンドル）との設定統一性を保ちながら、Webots シミュレータ（Pioneer 3-AT）で動作させるための設定です。Python が操舵方式の変換を担当します。Mission Planner または MAVProxy で設定してください。
 
 | カテゴリ | パラメータ名 | 設定値 | 理由 |
 | :--- | :--- | :--- | :--- |
-| 機体構成 | **FRAME_CLASS** | 1 | Rover (スキッドステア) に設定 |
-| 出力割当 | **SERVO1_FUNCTION** | 26 | 1ch を GroundSteering (ハンドル) に設定 |
+| 機体構成 | **FRAME_CLASS** | 1 | Rover に設定（実機との統一） |
+| 出力割当 | **SERVO1_FUNCTION** | 26 | 1ch を GroundSteering に設定（Python で左右速度差に変換） |
 | 出力割当 | **SERVO3_FUNCTION** | 70 | 3ch を Throttle (アクセル) に設定 |
 | 安全解除 | **ARMING_SKIPCHK** | 65535 | 3D Accel 校正エラー等のチェックをスキップ |
 | 停止維持 | **MOT_SAFE_DISARM** | 1 | DISARMED 時に出力を 0 (停止) に強制固定 |
