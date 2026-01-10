@@ -431,20 +431,6 @@ class WebotsArduVehicle():
         """Check if Webots client is connected"""
         return self._webots_connected
 
-    # def update_gui(self):
-    #     """Update OpenCV GUI windows in the main thread"""
-    #     if cv2 is None:
-    #         return
-
-    #     if hasattr(self, 'camera') and self.camera is not None:
-    #         try:
-    #             img = self.get_camera_image()
-    #             if img is not None:
-    #                 # Webots getImage() returns BGR order, so show it directly
-    #                 cv2.imshow("Webots_Camera_View", img)
-    #                 cv2.waitKey(1)
-    #         except Exception as e:
-    #             print(f"GUI Update Error: {e}")
     def update_gui(self):
         if not self.webots_connected(): return
         
@@ -457,8 +443,16 @@ class WebotsArduVehicle():
             
             # ソナーやレンジファインダーも同様
             if hasattr(self, 'sonar') and self.sonar:
-                # ここでデータ取得と送信が行われることを確認
-                pass
+                sonar_value = self.sonar.getValue()
+                # 1秒ごとにコンソールに出力 (500Hz想定のシミュレーションなら約100〜200ステップごと)
+                # ここでは正確な時間(Robot.getTime)を使用して判定
+                current_time = self.robot.getTime()
+                if not hasattr(self, '_last_print_time'):
+                    self._last_print_time = 0
+                
+                if current_time - self._last_print_time >= 1.0:
+                    print(f"{current_time:.1f}s: {sonar_value:.3f}m")
+                    self._last_print_time = current_time
 
             cv2.waitKey(1)
         except Exception as e:
@@ -477,8 +471,10 @@ class WebotsArduVehicle():
         img = self.camera.getImage()
         if img is None:
             return None
+        # Webots uses BGRA format internally
         img = np.frombuffer(img, np.uint8).reshape((self.camera.getHeight(), self.camera.getWidth(), 4))
-        return img[:, :, :3] # RGB only, no Alpha
+        # Swap BGRA to RGB: B,G,R is at 0,1,2. We want R,G,B.
+        return img[:, :, [2, 1, 0]] # Convert BGRA to RGB
 
     def get_rangefinder_image(self, use_int16: bool = False) -> np.ndarray:
         """Get the rangefinder depth image as a numpy array of int8 or int16"""\
