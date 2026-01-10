@@ -29,10 +29,22 @@ echo "SITL started with PID $SITL_PID"
 # SITLの起動待ち
 sleep 3
 
-# 2. MAVProxy の起動
+# 2. MAVProxy の起動オプション
 # --console: MAVProxyコンソールを表示
 # --map: マップを表示
-# --out: バックエンド(14552)への転送
+# --out: バックエンド(14552)への転送 , webs-gcsにも送りたいときはさらに --out udp:webserver:14550 を追加
+
+#3．起動後コマンド
+#  WebotsモードではMAVLinkのリンク設定を手動で行う必要があります
+#  以下のコマンドをMAVProxyコンソールで実行してください
+#  >link add 0.0.0.0:14551
+#  >link list
+#  >link remove 1
+#  Webapps GCSへの転送設定（必要に応じて）
+#  >output add udp:webserver:14552
+#  >output list
+#  >output remove 1
+
 echo "Starting MAVProxy..."
 mavproxy.py \
     --master tcp:127.0.0.1:5760 \
