@@ -39,7 +39,7 @@ Webots の `Pioneer3at`（または使用している Robot ノード）を以�
    * **`controller`**: `ardupilot_vehicle` (または `webots_vehicle.py`)
    * **`synchronization`**: **`TRUE`** (必須: SITLと速度を同期)
    * **`controllerArgs`**:
-     ```text
+     ```bash
      --motors "front left wheel, back left wheel, front right wheel, back right wheel"
      --motor-cap 10
      --bidirectional-motors 1
