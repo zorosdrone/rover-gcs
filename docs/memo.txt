@@ -8,3 +8,13 @@ Webserverにテレメトリを送りたいとき
 output add udp:webserver:14552
 ■ログ
 
+#3．起動後コマンド
+#  WebotsモードではMAVLinkのリンク設定を手動で行う必要があります
+#  以下のコマンドをMAVProxyコンソールで実行してください
+#   link add 0.0.0.0:14551
+#   link list
+#   link remove 1
+#  Webapps GCSへの転送設定（必要に応じて）
+#   output add udp:webserver:14552
+#   output list
+#   output remove 1

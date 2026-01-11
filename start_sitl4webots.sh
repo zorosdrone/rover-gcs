@@ -37,7 +37,10 @@ sleep 3
 # 2. MAVProxy の起動オプション
 # --console: MAVProxyコンソールを表示
 # --map: マップを表示
-# --out: バックエンド(14552)への転送 , webs-gcsにも送りたいときはさらに --out udp:webserver:14550 を追加
+# --out: バックエンド(14552)への転送 , 
+# 　　　　webs-gcsにも送りたいときはさらに --out udp:webserver:14550 を追加
+# 　　　　起動後の場合は　output add udp:webserver:14552　
+# --cmd "watch RANGEFINDER": RANGEFINDERメッセージを監視表示
 
 # WebotsのDISTANCE_SENSORをArduPilotのRangeFinder入力にするには、
 # そのメッセージがSITL(master)へ流れ込む必要があります。
@@ -55,7 +58,6 @@ mavproxy.py \
     --load-module webotsrf \
     --load-module messagerate \
     --cmd "messagerate set RANGEFINDER 10" \
-    --cmd "watch RANGEFINDER" \
     --console
 
 # MAVProxy終了時にSITLも終了させる

@@ -577,22 +577,17 @@ class WebotsArduVehicle():
                 safe_cm = max(0, current_cm)
 
                 # DISTANCE_SENSOR メッセージの送信
-                # ArduPilot側のRNGFND1_ORIENTが環境により異なることがあるため、
-                # 代表的なorientationを2通り(0/25)送って取りこぼしを避ける。
-                # - 0: ROTATION_NONE (前方レンジファインダ相当として使われがち)
-                # - 25: 下向き (SITLサンプル等でよく使われる)
-                # dialectによっては MAV_SENSOR_ROTATION_FORWARD が未定義なため、数値で扱う
-                for orientation in (0, 25):
-                    self.mav_link.mav.distance_sensor_send(
-                        self.get_time_boot_ms(),
-                        min_cm,
-                        max_cm,
-                        safe_cm,
-                        mavutil.mavlink.MAV_DISTANCE_SENSOR_LASER,
-                        0,
-                        orientation,
-                        0
-                    )
+                # RNGFND1_ORIENT=0 (ROTATION_NONE) 固定運用のため、orientation=0のみ送信。
+                self.mav_link.mav.distance_sensor_send(
+                    self.get_time_boot_ms(),
+                    min_cm,
+                    max_cm,
+                    safe_cm,
+                    mavutil.mavlink.MAV_DISTANCE_SENSOR_LASER,
+                    0,
+                    0,
+                    0,
+                )
                 # ↓ 成功したか確認するためのプリント文
                 # print(f"[Debug 1] OK: Sent {current_cm} cm to 14551") 
             except Exception as e:

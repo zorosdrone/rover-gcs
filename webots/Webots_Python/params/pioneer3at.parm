@@ -10,3 +10,7 @@ ARMING_SKIPCHK   64         # No RC requirements
 MOT_THST_EXPO    0          # No motor exponential
 SCHED_LOOP_RATE  300        
 INS_GYR_CAL      0
+
+# RangeFinder input via MAVLink DISTANCE_SENSOR
+RNGFND1_TYPE      10         # MAVLink
+RNGFND1_ORIENT    0          # ROTATION_NONE (forward)
