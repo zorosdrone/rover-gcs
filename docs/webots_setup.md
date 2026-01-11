@@ -1,8 +1,6 @@
 # ArduRover SITL × Webots 連携ガイド
 
 このドキュメントでは、WSL2上の ArduPilot SITL と Windows上の Webots シミュレータを連携させ、Mission Planner で制御するまでの全手順を解説します。
-「不武装なのにバックする」「1 motors 警告」などの問題を解消し、安定したスキッドステア（戦車信地旋回）走行を実現するための設定を含みます。
-
 ---
 
 ## 0. Webots のインストール (Windows)
