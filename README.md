@@ -199,6 +199,12 @@ Webots シミュレーターと連携させる場合は、以下のスクリプ�
 ./start_sitl4webots.sh
 ```
 
+> [!NOTE]
+> **距離センサー (LiDAR/Sonar) のRangeFinder入力について**:
+> Webots の距離を ArduPilot の RangeFinder として使う場合、Webots から `DISTANCE_SENSOR` を WSL2 側へ送信し、
+> MAVProxy のモジュール `webotsrf` が master(SITL) へ注入する構成になっています（UDP `14551`）。
+> セットアップ詳細は `docs/webots_setup.md` を参照してください。
+
 
 #### 2. アプリケーション (Backend + Frontend) の起動
 
@@ -272,7 +278,8 @@ docker compose -f docker-compose.prod.yml up --build -d
 ## ログ / 設定ファイル
 
 - `backend/logs/` : バックエンドのログ (`LASTLOG.TXT` など)
-- `backend/mav.parm` : 機体のパラメータファイル
+- `mav.parm` : 機体のパラメータファイル（SITL起動時の `--defaults` で適用）
+- `backend/mav.parm` : バックエンド同梱のパラメータファイル（用途により参照）
 - `backend/eeprom.bin` : EEPROM データ
 - `backend/mav.tlog*` : テレメトリログ
 
@@ -328,6 +335,7 @@ WSL2環境の場合、DNS設定が原因の可能性があります。`/etc/reso
 ### Q. スマホや外部デバイスから接続できない
 Windows Defender ファイアウォールで、以下のポートの受信許可設定（TCP/UDP）を行ってください。
 - TCP: 8000 (Backend), 5173 (Frontend)
+ - UDP: 14550 (Mission Planner), 14551 (Webots距離センサー注入), 9002/9003 (Webots連携)
 - UDP: 14552 (MAVLink)
 WSL2を使用している場合、Windows側のIPアドレスでのアクセスや、ポートフォワーディング設定が必要になる場合があります。
 

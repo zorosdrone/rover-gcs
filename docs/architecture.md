@@ -107,6 +107,7 @@ sequenceDiagram
 
 
 1. Pixhawk / Rover が `DISTANCE_SENSOR` (LiDAR / Sonar) を出力します。
+    - シミュレーション(Webots)では、Webots側が `DISTANCE_SENSOR` を MAVLink で注入することで同等の経路を再現します。
 2. Backend (`backend/main.py`) が `DISTANCE_SENSOR` を受信し、フロントエンド向けに `TELEMETRY` メッセージとして
     `{ type: "TELEMETRY", data: { sonar_range: <cm> } }` を送信します。
 3. Frontend (React) が `telemetry.TELEMETRY.sonar_range` を監視し、サイドバーの `Auto-stop` で選択された閾値以下になった場合に自動で `COMMAND: STOP` を送信します。

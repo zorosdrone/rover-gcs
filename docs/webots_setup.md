@@ -25,8 +25,8 @@ WSL2とWindows間の通信を確立するために、それぞれのIPアドレ�
 ### Windows Defender ファイアウォールの設定
 Windows側で以下のポートのパケット通過を許可します。
 1. **UDPポート**: `9002, 9003` (SITL連携用)
-2. **TCPポート**: `5760` (MAVProxy/Mission Planner用)
-3. **UDPポート**: `14550` (Mission Planner 接続用)
+2. **UDPポート**: `14550` (Mission Planner 接続用)
+3. **UDPポート**: `14551` (Webots→WSL2 の距離センサー注入用)
 
 ---
 
@@ -134,7 +134,43 @@ chmod +x start_sitl4webots.sh
 スクリプトが実行されると以下の処理が自動的に行われます：
 1. ArduRover SITL バイナリの起動（Webots連携モード）
 2. パラメータファイル（`mav.parm`）の自動ロード
-3. MAVProxy の起動（WebUI用、GCS用ポートへの転送設定済み）
+3. MAVProxy の起動（GCS用ポートへの転送＋距離センサー注入モジュール `webotsrf` をロード）
+
+### 重要: RangeFinder (LiDAR/Sonar) を ArduPilot に入力する方法
+
+Webots 側で距離（DistanceSensor 等）を取得しても、**そのままでは ArduPilot の RangeFinder として認識されません**。
+理由は、MAVProxy の `link add` は追加リンクから受信した MAVLink を **master(SITL) へ中継しない**ためです。
+
+このリポジトリでは以下の方式で解決しています。
+
+1. Webots コントローラが `DISTANCE_SENSOR` を `udpout:<WSL_IP>:14551` に送信
+2. MAVProxy がモジュール `webotsrf` で `udpin:0.0.0.0:14551` を受信
+3. `webotsrf` が受け取った `DISTANCE_SENSOR` を master(SITL) へ再送して注入
+
+関連ファイル:
+- 起動スクリプト: `start_sitl4webots.sh`（`--load-module webotsrf` を自動設定）
+- MAVProxyモジュール: `mavproxy_modules/webotsrf.py`
+
+ArduPilot 側の必須パラメータ（このリポジトリの `mav.parm` に含まれます）:
+- `RNGFND1_TYPE=10`（MAVLink）
+- `RNGFND1_ORIENT=0`（正面/ROTATION_NONE）
+
+確認方法:
+- MAVProxy で `watch RANGEFINDER` を実行し、`distance` が 0 以外になっていること
+- Mission Planner の PreArm 警告 `Rangefinder 1: No Data` が消えること
+
+参考スクリーンショット:
+
+![rover-gcsでのSonar Range表示](./images/webot_lidar_web.png)
+
+![Mission PlannerでのRANGEFINDER表示](./images/webot_lidar_mp.png)
+
+#### トラブルシュート: `Rangefinder 1: No Data` が消えない
+
+- Webots が WSL2 に向けて `udpout:<WSL_IP>:14551` を送っているか（Webotsログで送信先を確認）
+- WSL2 側で 14551 を待ち受けできているか（MAVProxy起動ログに `[webotsrf] Listening on UDP :14551` が出る）
+- MAVProxy で `webotsrf status` を実行し、`forwarded` が増えているか
+- `RNGFND1_TYPE=10` と `RNGFND1_ORIENT=0` が適用されているか（`mav.parm` のロード確認）
 
 
 ---
@@ -151,6 +187,15 @@ chmod +x start_sitl4webots.sh
 | 安全解除 | **ARMING_SKIPCHK** | 65535 | 3D Accel 校正エラー等のチェックをスキップ |
 | 停止維持 | **MOT_SAFE_DISARM** | 1 | DISARMED 時に出力を 0 (停止) に強制固定 |
 | 制御抑制 | **ATC_SPEED_I** | 0 | 静止中の積分値蓄積による暴走を防止 |
+
+### RangeFinder (MAVLink) の設定
+
+Webots から注入した `DISTANCE_SENSOR` を RangeFinder として使うため、次を必ず設定します。
+
+| パラメータ名 | 設定値 | 理由 |
+| :--- | :--- | :--- |
+| **RNGFND1_TYPE** | 10 | 入力を MAVLink (`DISTANCE_SENSOR`) にする |
+| **RNGFND1_ORIENT** | 0 | Webots 側の送信 orientation と一致させる |
 
 ### 💡 その他の動作制限解除（初回のみ推奨）
 MAVProxy または Mission Planner のコンソールで以下のコマンドを実行します。

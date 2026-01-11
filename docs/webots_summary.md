@@ -27,7 +27,22 @@
 
 <img src="./images/wgcs_yolo&rangef.jpg" alt="YOLOと距離計による認識シミュレーション" width="500px">
 
-## 4. クイックスタート
+## 4. 距離センサー (LiDAR/Sonar) の扱い
+
+Webots の距離センサーを ArduPilot の RangeFinder として成立させるため、
+Webots → MAVProxy → SITL(master) へ `DISTANCE_SENSOR` を **注入**する経路を用意しています。
+
+- Webots は `udpout:<WSL_IP>:14551` に `DISTANCE_SENSOR` を送信
+- MAVProxy はモジュール `webotsrf` で `udpin:0.0.0.0:14551` を受信し、master(SITL)へ再送
+- ArduPilot 側は `RNGFND1_TYPE=10` / `RNGFND1_ORIENT=0` を設定
+
+表示例:
+
+<img src="./images/webot_lidar_web.png" alt="rover-gcsのSonar Range表示" width="500px">
+
+<img src="./images/webot_lidar_mp.png" alt="Mission PlannerのRANGEFINDER表示" width="500px">
+
+## 5. クイックスタート
 
 詳細な設定手順については [Webots 連携詳細ガイド](./webots_setup.md) を参照してください。
 
