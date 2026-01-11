@@ -168,26 +168,12 @@ class WebotsArduVehicle():
                 self.sonar = None
 
         # init MAVLink connection for distance sensor reporting (optional)
-        # Attempt to open an outbound MAVLink UDP port to localhost:14550
-        if mavutil:
-            try:
-                # use udpout so we push packets to local SITL (or MAVProxy)
-                # send as System ID 1 and component 154 (distance sensor/laser array)
-                self.mav_link = mavutil.mavlink_connection(
-                    f'udpout:{sitl_address}:14551',
-                    source_system=255,
-                    source_component=158
-                )
-                print(f"[webots_vehicle] MAVLink connection established on udpout:{sitl_address}:14551 (sys=255 comp=158)")
-                
-            except Exception as e:
-                print(f"[webots_vehicle] Warning: Could not establish MAVLink connection: {e}")
-                self.mav_link = None
-        else:
-            self.mav_link = None
+        self.mav_link = None
+        self._mavlink_target_addr = None  # SITL(WSL)のIPアドレスを自動検知して保持する
 
         # init step counter for throttling MAVLink sends (10 steps = ~50Hz at 500Hz sim)
         self._step_counter = 0
+        self._last_distance_send_ms = None
         
         # init boot time for MAVLink timestamp
         self._start_time = time.monotonic()
@@ -243,9 +229,22 @@ class WebotsArduVehicle():
 
             # receive data from SITL port
             if readable:
-                data = s.recv(512)
-                if not data or len(data) < self.controls_struct_size:
-                    continue
+                data, addr = s.recvfrom(512)
+                
+                # 自動IP検知: 最初に来たパケットの送信元(WSL側)に対してMAVLinkを送るようにする
+                if self.mav_link is None and mavutil:
+                    try:
+                        wsl_ip = addr[0]
+                        # Webots→MAVProxy(UDP:14551)へ送信し、MAVProxy側モジュール(webotsrf)が
+                        # master(SITL)へDISTANCE_SENSORを注入します。
+                        self.mav_link = mavutil.mavlink_connection(
+                            f'udpout:{wsl_ip}:14551',
+                            source_system=2,
+                            source_component=158,
+                        )
+                        print(f"[webots_vehicle] Detected SITL at {wsl_ip}. Sending MAVLink distance to udpout:{wsl_ip}:14551")
+                    except Exception as e:
+                        print(f"[webots_vehicle] MAVLink init error: {e}")
 
                 # parse a single struct
                 command = struct.unpack(self.controls_struct_format, data[:self.controls_struct_size])
@@ -257,15 +256,16 @@ class WebotsArduVehicle():
                     break
                 
                 # send rangefinder center distance to ArduPilot via MAVLink (if available)
-                # throttle to 10 steps (reduces send frequency to ~50Hz at 500Hz sim rate)
                 self._step_counter += 1
-                if self._step_counter % 30 == 0:
-                    try:
-                        if step_success != -1 and hasattr(self, 'send_mavlink_distance'):
+                try:
+                    if hasattr(self, 'send_mavlink_distance'):
+                        now_ms = self.get_time_boot_ms()
+                        if self._last_distance_send_ms is None or (now_ms - self._last_distance_send_ms) >= 100:
                             self.send_mavlink_distance()
-                    except Exception:
-                        # avoid spamming errors from MAVLink send
-                        pass
+                            self._last_distance_send_ms = now_ms
+                except Exception:
+                    # avoid spamming errors from MAVLink send
+                    pass
 
         # if we leave the main loop then Webots must have closed
         s.close()
@@ -509,69 +509,92 @@ class WebotsArduVehicle():
             m.setVelocity(0)
 
     def send_mavlink_distance(self):
-        """Send the center pixel distance from the RangeFinder to ArduPilot via MAVLink.
-
-        This reads the RangeFinder image buffer, extracts the center pixel value (meters),
-        converts to centimeters and sends a MAVLink DISTANCE_SENSOR message on the
-        outbound MAVLink connection opened in __init__ (udpout:localhost:14550).
-        """
-        if not (hasattr(self, 'mav_link') and self.mav_link):
+        """Send the center pixel distance from the RangeFinder to ArduPilot via MAVLink."""
+        if not (self.mav_link):
             return
 
         try:
             # Prefer simple DistanceSensor (sonar) if available
-            if hasattr(self, 'sonar') and self.sonar is not None:
+            if not (hasattr(self, 'sonar') and self.sonar is not None):
+                return
+
+            try:
+                distance_raw = self.sonar.getValue()
+                distance_m = float(distance_raw)
+            except Exception:
+                return
+
+            # Webots DistanceSensorのAPI差異を吸収
+            # - getMinRange/getMaxRange があれば使用
+            # - なければ getMinValue/getMaxValue を試す
+            # - 最後に安全な既定値
+            min_r = None
+            max_r = None
+            for min_name, max_name in (
+                ('getMinRange', 'getMaxRange'),
+                ('getMinValue', 'getMaxValue'),
+            ):
                 try:
-                    distance_m = float(self.sonar.getValue())
+                    min_r = float(getattr(self.sonar, min_name)())
+                    max_r = float(getattr(self.sonar, max_name)())
+                    break
                 except Exception:
-                    return
+                    continue
+            if min_r is None or max_r is None:
+                min_r = 0.2
+                max_r = 5.0
 
-                # get range limits from device if available, else set defaults
-                try:
-                    min_r = self.sonar.getMinRange()
-                    max_r = self.sonar.getMaxRange()
-                except Exception:
-                    min_r = 0.2
-                    max_r = 5.0
+            # inf/NaNは最大距離扱いにする
+            if distance_m == float('inf') or distance_m != distance_m:
+                distance_m = max_r
 
-                if distance_m == float('inf') or distance_m != distance_m:
-                    distance_m = max_r
+            # ArduPilotへ送る値はcm(uint16)。範囲外はクランプして常に有効値にする
+            min_cm = max(0, int(min_r * 100))
+            max_cm = max(min_cm + 1, int(max_r * 100))
+            current_cm = int(distance_m * 100)
+            if current_cm < min_cm:
+                current_cm = min_cm
+            if current_cm > max_cm:
+                current_cm = max_cm
 
-                if distance_m > max_r:
-                    distance_m = max_r
-
-                min_cm = int(min_r * 100)
-                max_cm = int(max_r * 100)
-                current_cm = int(distance_m * 100)
-         
 
             # Send MAVLink DISTANCE_SENSOR
             try:
-                # send a short heartbeat so ArduPilot recognizes this source
-                try:
-                    self.mav_link.mav.heartbeat_send(
-                        mavutil.mavlink.MAV_TYPE_GCS,
-                        mavutil.mavlink.MAV_AUTOPILOT_INVALID,
-                        0, 0, 0
+                # 自己紹介（ハートビート）を送信　。不要、コメントアウト
+                # 頻度を1秒に1回程度にし、状態を「ACTIVE」に明示
+                # if self._step_counter % 50 == 0: 
+                #     try:
+                #         self.mav_link.mav.heartbeat_send(
+                #             mavutil.mavlink.MAV_TYPE_ONBOARD_CONTROLLER,
+                #             mavutil.mavlink.MAV_AUTOPILOT_INVALID,
+                #             mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED,
+                #             0,
+                #             mavutil.mavlink.MAV_STATE_ACTIVE
+                #         )
+                #     except Exception:
+                #         pass
+                
+                safe_cm = max(0, current_cm)
+
+                # DISTANCE_SENSOR メッセージの送信
+                # ArduPilot側のRNGFND1_ORIENTが環境により異なることがあるため、
+                # 代表的なorientationを2通り(0/25)送って取りこぼしを避ける。
+                # - 0: ROTATION_NONE (前方レンジファインダ相当として使われがち)
+                # - 25: 下向き (SITLサンプル等でよく使われる)
+                # dialectによっては MAV_SENSOR_ROTATION_FORWARD が未定義なため、数値で扱う
+                for orientation in (0, 25):
+                    self.mav_link.mav.distance_sensor_send(
+                        self.get_time_boot_ms(),
+                        min_cm,
+                        max_cm,
+                        safe_cm,
+                        mavutil.mavlink.MAV_DISTANCE_SENSOR_LASER,
+                        0,
+                        orientation,
+                        0
                     )
-                except Exception:
-                    pass
-                
-                # Test: Send fixed 100cm (1m) to verify in Mission Planner
-                current_cm = 100
-                
-                self.mav_link.mav.distance_sensor_send(
-                    self.get_time_boot_ms(),  # time_boot_ms - dynamic timestamp
-                    min_cm,           # min_distance (cm)
-                    max_cm,           # max_distance (cm)
-                    current_cm,       # current_distance (cm)
-                    mavutil.mavlink.MAV_DISTANCE_SENSOR_LASER,
-                    0,                # sensor id
-                    mavutil.mavlink.MAV_SENSOR_ROTATION_NONE,
-                    0                 # covariance
-                )
                 # ↓ 成功したか確認するためのプリント文
-                print(f"[Debug 1] OK: Sent {current_cm} cm to 14551") 
+                # print(f"[Debug 1] OK: Sent {current_cm} cm to 14551") 
             except Exception as e:
                 # ↓ エラーがあれば表示する
                 print(f"[MAVLink Send Error] {e}")

@@ -9,7 +9,7 @@ backend/logs/
 # シミュレータが生成する一時ファイルを除外
 logs/
 eeprom.bin
-*.parm
+# *.parm
 *.tlog
 *.tlog.raw
 backend/eeprom.bin

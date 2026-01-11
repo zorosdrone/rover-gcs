@@ -4,6 +4,10 @@
 # ipconfig で確認した vEthernet (WSL) の IPv4 アドレスを設定してください
 WINDOWS_IP="172.30.96.1"
 
+# このリポジトリの mav.parm を常に適用する（SITLのeeprom.binに古い値が残っていても上書きできる）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULTS_FILE="$SCRIPT_DIR/mav.parm"
+
 echo "=================================================="
 echo "🚀 Starting ArduPilot SITL (Webots Mode)"
 echo "Target Windows IP: $WINDOWS_IP"
@@ -18,6 +22,7 @@ cd ~/GitHub/ardupilot/Rover
 echo "Starting SITL binary..."
 ../build/sitl/bin/ardurover \
     --model webots-python \
+    --defaults "$DEFAULTS_FILE" \
     --sim-address $WINDOWS_IP \
     --sim-port-out 9002 \
     --sim-port-in 9003 \
@@ -34,22 +39,23 @@ sleep 3
 # --map: マップを表示
 # --out: バックエンド(14552)への転送 , webs-gcsにも送りたいときはさらに --out udp:webserver:14550 を追加
 
-#3．起動後コマンド
-#  WebotsモードではMAVLinkのリンク設定を手動で行う必要があります
-#  以下のコマンドをMAVProxyコンソールで実行してください
-#  >link add 0.0.0.0:14551
-#  >link list
-#  >link remove 1
-#  Webapps GCSへの転送設定（必要に応じて）
-#  >output add udp:webserver:14552
-#  >output list
-#  >output remove 1
+# WebotsのDISTANCE_SENSORをArduPilotのRangeFinder入力にするには、
+# そのメッセージがSITL(master)へ流れ込む必要があります。
+# MAVProxyの "link add" は受信はできても master へは中継しないため、
+# 本リポジトリのMAVProxyモジュール(webotsrf)で UDP:14551 を受け、
+# master(SITL)へDISTANCE_SENSORを再送して注入します。
+# Webots側は udpout:<WSL_IP>:14551 へ送信してください。
 
 echo "Starting MAVProxy..."
+export PYTHONPATH="$SCRIPT_DIR/mavproxy_modules:$PYTHONPATH"
 mavproxy.py \
     --master tcp:127.0.0.1:5760 \
     --out udp:127.0.0.1:14552 \
     --out udp:$WINDOWS_IP:14550 \
+    --load-module webotsrf \
+    --load-module messagerate \
+    --cmd "messagerate set RANGEFINDER 10" \
+    --cmd "watch RANGEFINDER" \
     --console
 
 # MAVProxy終了時にSITLも終了させる
