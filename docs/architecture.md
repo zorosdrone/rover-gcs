@@ -21,9 +21,11 @@ graph TD
         direction TB
         Docker[Docker Container]
         Backend_Prod[Backend - FastAPI]
-        Frontend_Prod[Frontend - React]
+        Frontend_Prod[Frontend - React - WebGCS]
+        VDO_Prod[VDO.Ninja - Self-host - /vdo]
         Docker --> Backend_Prod
         Backend_Prod <--> Frontend_Prod
+        Frontend_Prod --- VDO_Prod
     end
 
     %% 3. Home Dev PC
@@ -32,10 +34,12 @@ graph TD
         WSL[WSL2 Ubuntu]
         SITL[SITL Sim]
         Backend_Dev[Backend - FastAPI]
-        Frontend_Dev[Frontend - React]
+        Frontend_Dev[Frontend - React - WebGCS]
+        VDO_Dev[VDO.Ninja - Self-host - /vdo]
         WSL --- SITL
         SITL -->|UDP 14552| Backend_Dev
         Backend_Dev <--> Frontend_Dev
+        Frontend_Dev --- VDO_Dev
     end
 
     %% Network (Tailscale)
@@ -43,12 +47,18 @@ graph TD
     PiZero --> Backend_Dev
 
     %% User access
-    User((User)) --> Frontend_Prod
-    Dev((Dev)) --> Frontend_Dev
+    User[User] --> Frontend_Prod
+    Dev[Dev] --> Frontend_Dev
+
+    %% WebRTC Camera
+    Phone[Smartphone Camera] -->|WebRTC push| VDO_Prod
+    Phone[Smartphone Camera] -->|WebRTC push| VDO_Dev
+    Frontend_Prod -->|WebRTC view| VDO_Prod
+    Frontend_Dev -->|WebRTC view| VDO_Dev
 
     %% Apply styles
     class Rover_System,Cloud_Server,Home_PC hardware;
-    class Pixhawk,PiZero,Backend_Prod,Frontend_Prod,SITL,Backend_Dev,Frontend_Dev software;
+    class Pixhawk,PiZero,Backend_Prod,Frontend_Prod,VDO_Prod,SITL,Backend_Dev,Frontend_Dev,VDO_Dev software;
 ```
 
 ## 目次
@@ -57,6 +67,7 @@ graph TD
   - [目次](#目次)
   - [データフロー詳細 (Frontend ⇔ Backend ⇔ Rover)](#データフロー詳細-frontend--backend--rover)
     - [通信シーケンス](#通信シーケンス)
+        - [映像 (WebRTC) と YOLO (ブラウザ推論)](#映像-webrtc-と-yolo-ブラウザ推論)
     - [内部処理フロー (backend/main.py)](#内部処理フロー-backendmainpy)
     - [メッセージ定義](#メッセージ定義)
       - [1. Backend -\> Frontend (Telemetry)](#1-backend---frontend-telemetry)
@@ -71,9 +82,11 @@ graph TD
 ```mermaid
 sequenceDiagram
     participant User
+    participant Phone
     participant Frontend
     participant Backend
     participant Rover
+    participant VDO
 
     User->>Frontend: Access Page
     Frontend->>User: Show Login Form
@@ -99,7 +112,29 @@ sequenceDiagram
         Frontend->>Backend: COMMAND
         Backend->>Rover: MAVLink COMMAND
     end
+
+    par Video WebRTC
+        Phone->>VDO: Open /vdo/index.html?push=<ViewID>
+        Frontend->>VDO: Embed /vdo/index.html?view=<ViewID>
+        VDO-->>Frontend: WebRTC video stream
+    end
 ```
+
+### 映像 (WebRTC) と YOLO (ブラウザ推論)
+
+本プロジェクトの映像系は、テレメトリ（WebSocket/MAVLink）とは独立して動作します。
+
+- **WebRTC (VDO.Ninja)**
+    - `frontend/public/vdo/` に VDO.Ninja の静的ファイル一式を同梱しており、WebGCS と同一オリジンで `/vdo/` として配信します（本番は FastAPI が `frontend/dist` を配信、開発は Vite が配信）。
+    - スマホ等のカメラ端末で **push** を開始し、WebGCS 側は **view** で受信します。
+        - 配信（送信）例: `https://<host>/vdo/index.html?push=<ViewID>`
+        - 表示（受信）例: `https://<host>/vdo/index.html?view=<ViewID>`
+    - **注意:** ブラウザでカメラ権限を使うため、通常は **HTTPS が必須** です（[docs/deploy.md](./deploy.md) 参照）。
+
+- **YOLO (物体検出) の実行場所**
+    - YOLO はバックエンドではなく、**ブラウザ内**（Advanced Mode）で実行します。
+    - 実装は `@tensorflow/tfjs` + `@tensorflow-models/coco-ssd` を使用し、VDO.Ninja の `<video>` フレームから画像を取り出して検出・描画します。
+
 
 ### 追加: 距離センサーと自動停止のフロー
 
@@ -120,47 +155,50 @@ sequenceDiagram
 また、MAVLinkのブロッキング処理（`wait_heartbeat` 等）は `loop.run_in_executor` を使用して別スレッドで実行し、メインのイベントループ（WebSocket通信等）を阻害しない設計になっています。
 
 ```mermaid
-flowchart TD
-    subgraph WebSocket_Endpoint ["websocket_endpoint()"]
-        direction TB
-        
-        Start((Start)) --> Connect[WebSocket Accept]
-        Connect --> MavConnect["MAVLink Connect<br>(UDP 14552)"]
-        MavConnect --> WaitHB["Wait for Heartbeat<br>(run_in_executor)"]
-        WaitHB --> Gather{asyncio.gather}
-        
-        subgraph Task1 ["mavlink_to_frontend()"]
-            Recv[mav.recv_match] --> Check{Msg Type?}
-            Check -- "ATTITUDE / POS / HUD" --> ToDict[Convert to Dict]
-            Check -- "Other" --> Recv
-            ToDict --> AddInfo[Add Mode/Arm Info]
-            AddInfo --> SendWS["ws.send_text(JSON)"]
-            SendWS --> Sleep[Sleep 0.01s]
-            Sleep --> Recv
-        end
-        
-        subgraph Task2 ["commands_from_frontend()"]
-            WaitWS["ws.receive_text()"] --> Parse[Parse JSON]
-            Parse --> Switch{Command Type?}
-            
-            Switch -- "ARM/DISARM" --> MavArm["mav.arducopter_arm/disarm"]
-            Switch -- "SET_MODE" --> MavMode[mav.set_mode]
-            Switch -- "MOVE (Fwd/Back/L/R)" --> UpdateRC[Update RC Variables]
-            
-            MavArm --> SendRC
-            MavMode --> SendRC
-            UpdateRC --> SendRC
-            
-            subgraph RC_Loop ["send_rc_override (Internal)"]
-                SendRC[mav.rc_channels_override_send]
-            end
-            
-            SendRC --> WaitWS
-        end
-        
-        Gather --> Task1
-        Gather --> Task2
-    end
+flowchart TB
+    Start[Start]
+    Connect[WebSocket Accept]
+    MavConnect[MAVLink Connect\nUDP 14552]
+    WaitHB[Wait Heartbeat\nrun_in_executor]
+    Spawn[Spawn async tasks\nasyncio.gather]
+    Task1[mavlink_to_frontend]
+    Task2[commands_from_frontend]
+
+    Start --> Connect --> MavConnect --> WaitHB --> Spawn
+    Spawn --> Task1
+    Spawn --> Task2
+```
+
+#### Task1: mavlink_to_frontend
+
+```mermaid
+flowchart TB
+    Recv[mav.recv_match\nnon-blocking]
+    Check{Msg type?}
+    ToDict[Convert to dict]
+    AddInfo[Add mode/arm\nif HEARTBEAT]
+    SendWS[Send WS JSON]
+    Sleep[Sleep 0.01s]
+
+    Recv --> Check
+    Check -->|Known telemetry| ToDict --> AddInfo --> SendWS --> Sleep --> Recv
+    Check -->|Other| Recv
+```
+
+#### Task2: commands_from_frontend
+
+```mermaid
+flowchart TB
+    WaitWS[WS receive_text]
+    Parse[Parse JSON]
+    Type{type?}
+    Manual[MANUAL_CONTROL\nupdate steer/throttle]
+    Command[COMMAND\nARM/DISARM/SET_MODE/etc]
+    SendRC[rc_channels_override_send]
+
+    WaitWS --> Parse --> Type
+    Type -->|MANUAL_CONTROL| Manual --> SendRC --> WaitWS
+    Type -->|COMMAND| Command --> SendRC --> WaitWS
 ```
 
 ### メッセージ定義
@@ -207,3 +245,11 @@ flowchart TD
   "timestamp": 1700000000000
 }
 ```
+
+---
+
+## 関連ドキュメント
+
+- [Webots シミュレーション構成](./architecture_webots.md)
+- [Webots 連携シミュレーションの概要](./webots_summary.md)
+- [Webサーバーへのデプロイ手順](./deploy.md)
